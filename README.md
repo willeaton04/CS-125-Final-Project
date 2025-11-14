@@ -15,9 +15,11 @@ What should they be able to do?
 - Finances (who has paid for ...)
 - Registration: names, emails, phone numbers, parents 
 - Description of youth members
+- Keep track of students, leaders and volunteers
 
+Assumptions: - We only record one parent per each student, event refers to every event that happens at the Church while camp means every event that happens outdoor 
 What shouldn’t they do?
-- 
+
 
 What’s your team’s name? 
 Nice Will 
@@ -31,3 +33,4 @@ Create the repository ✅
 3. BackEnd
 4. FrontEnd 
 5. Full stack 
+
