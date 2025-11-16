@@ -1,6 +1,6 @@
-# CS-125-Final-Project
+## CS-125-Final-Project
 
-# Prerequsite 
+## Prerequsite 
 
 Who’s using this?
 - Leaders: Administration (distinguish roles) 
@@ -27,10 +27,23 @@ Nice Will
 Create the repository ✅
 
 
-# Goals 
+## Goals 
 1. Conceptual Design
 2. Logical design 
 3. BackEnd
 4. FrontEnd 
-5. Full stack 
+5. Full stack
+
+---
+
+## Setup
+To set up all services run these commands:
+```bash
+chmod +x infra/build-service.sh && cd infra && ./build-service.sh && cd ..
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+
 
