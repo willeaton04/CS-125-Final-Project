@@ -1,0 +1,44 @@
+services:
+  # init mysql
+  mysql:
+    image: mysql:8.0
+    container_name: mysql-container
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: nicewill
+      MYSQL_DATABASE: mysql
+      MYSQL_USER: admin
+      MYSQL_PASSWORD: nicewill
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  # Init Redis
+  redis:
+    image: redis:7
+    container_name: redis-container
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  # init mongoDB
+  mongo:
+    image: mongo:7
+    container_name: mongo-container
+    restart: always
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: nicewill
+    volumes:
+      - mongo_data:/data/db
+
+
+volumes:
+  mysql_data:
+  redis_data:
+  mongo_data:
