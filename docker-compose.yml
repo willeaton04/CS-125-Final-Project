@@ -1,5 +1,9 @@
+# @author Will Eaton
+
 services:
-  # init mysql
+  # ---------------------------
+  # DATABASE SERVICES
+  # ---------------------------
   mysql:
     image: mysql:8.0
     container_name: mysql-container
@@ -14,7 +18,7 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
 
-  # Init Redis
+
   redis:
     image: redis:7
     container_name: redis-container
@@ -24,19 +28,44 @@ services:
     volumes:
       - redis_data:/data
 
-  # init mongoDB
+
   mongo:
     image: mongo:7
     container_name: mongo-container
     restart: always
-    ports:
-      - "27017:27017"
     environment:
       MONGO_INITDB_ROOT_USERNAME: admin
       MONGO_INITDB_ROOT_PASSWORD: nicewill
+    ports:
+      - "27017:27017"
     volumes:
       - mongo_data:/data/db
 
+
+  # ---------------------------
+  # PYTHON GRAPHQL BACKEND
+  # ---------------------------
+  backend:
+    build: ./backend
+    container_name: python-backend
+    restart: always
+    depends_on:
+      - mysql
+      - redis
+      - mongo
+    ports:
+      - "8000:8000"
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_USER: admin
+      MYSQL_PASSWORD: nicewill
+      MYSQL_DB: mysql
+
+      REDIS_HOST: redis
+
+      MONGO_HOST: mongo
+      MONGO_USER: admin
+      MONGO_PASSWORD: nicewill
 
 volumes:
   mysql_data:

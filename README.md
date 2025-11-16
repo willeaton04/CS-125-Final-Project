@@ -39,7 +39,7 @@ Create the repository ✅
 ## Setup
 To set up all services run these commands:
 ```bash
-chmod +x infra/build-service.sh && cd infra && ./build-service.sh && cd ..
+chmod +x build-services.sh && ./build-services.sh
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
