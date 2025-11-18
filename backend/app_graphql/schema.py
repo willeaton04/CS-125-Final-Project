@@ -4,19 +4,19 @@
 
 import strawberry
 import os
-import pymsql
+import pymysql
 import redis
 from pymongo import MongoClient
 
 # DB helper methods
 
 def get_mysql_conn():
-    return pymsql.connect(
+    return pymysql.connect(
         host=os.getenv('MYSQL_HOST'),
         user=os.getenv('MYSQL_USER'),
         password=os.getenv('MYSQL_PASSWORD'),
         database=os.getenv('MYSQL_DATABASE'),
-        cursorclass=pymsql.cusors.DictCursor
+        cursorclass=pymysql.cusors.DictCursor
     )
 
 def get_redis_conn():
@@ -24,7 +24,7 @@ def get_redis_conn():
 
 def get_mongo_conn():
     client = MongoClient(
-        f'mongodb://{os.getenv('MONGO_USER')}{os.getenv('MONGO_PASSWORD')}@{os.getenv('MONGO_HOST')}:27017'
+        f"mongodb://{os.getenv('MONGO_USER')}{os.getenv('MONGO_PASSWORD')}@{os.getenv('MONGO_HOST')}:27017"
     )
     return client['testdb']
 
@@ -35,7 +35,7 @@ def get_mongo_conn():
 class Query:
     hello: str='Hello!'
 
-    @strawberry.feild
+    @strawberry.field
     def mysql_test(self) -> list[str]:
         '''
         test conn with mysql
@@ -44,9 +44,9 @@ class Query:
         with conn.cursor() as cur:
             cur.execute('SHOW DATABASES;')
             rows = cur.fetchall()
-        return [row[f'{os.getenv('MYSQL_DATABASEY')}'] for row in rows]
+        return [row[f'{os.getenv('MYSQL_DATABASE')}'] for row in rows]
 
-    @strawberry.feild
+    @strawberry.field
     def redis_test(self) -> str | None:
         '''
         tests conn with redis
@@ -55,7 +55,7 @@ class Query:
         r.set('demo', 'Redis is working!')
         return r.get('demo')
 
-    @strawberry.feild
+    @strawberry.field
     def mongo_test(self) -> list[str]:
         '''
         Tests conn with MongoDB
@@ -63,3 +63,8 @@ class Query:
         db = get_mongo_conn()
         db.test_collection.insert_one({'name': 'Mongo works!'})
         return [d['name'] for d in db.test_collection.find()]
+
+
+schema = strawberry.Schema(
+    query=Query,
+)
