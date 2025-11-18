@@ -48,7 +48,7 @@ chmod +x build-services.sh && ./build-services.sh
 ---
 ## Infra
 
-- Docker container contains 4 services:
+- All docker containers are managed under docker compose.
 
 
 ```

@@ -4,3 +4,4 @@ strawberry-graphql
 pymysql
 redis
 pymongo
+cryptography

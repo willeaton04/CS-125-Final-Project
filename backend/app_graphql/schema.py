@@ -16,7 +16,7 @@ def get_mysql_conn():
         user=os.getenv('MYSQL_USER'),
         password=os.getenv('MYSQL_PASSWORD'),
         database=os.getenv('MYSQL_DATABASE'),
-        cursorclass=pymysql.cusors.DictCursor
+        cursorclass=pymysql.cursors.DictCursor
     )
 
 def get_redis_conn():
@@ -24,7 +24,7 @@ def get_redis_conn():
 
 def get_mongo_conn():
     client = MongoClient(
-        f"mongodb://{os.getenv('MONGO_USER')}{os.getenv('MONGO_PASSWORD')}@{os.getenv('MONGO_HOST')}:27017"
+        f"mongodb://{os.getenv('MONGO_USER')}:{os.getenv('MONGO_PASSWORD')}@{os.getenv('MONGO_HOST')}:27017"
     )
     return client['testdb']
 
@@ -37,14 +37,13 @@ class Query:
 
     @strawberry.field
     def mysql_test(self) -> list[str]:
-        '''
-        test conn with mysql
-        '''
         conn = get_mysql_conn()
-        with conn.cursor() as cur:
+        with conn.cursor() as cur:  # get dicts
             cur.execute('SHOW DATABASES;')
             rows = cur.fetchall()
-        return [row[f'{os.getenv('MYSQL_DATABASE')}'] for row in rows]
+
+        # Extract the database names as strings
+        return [row['Database'] for row in rows]
 
     @strawberry.field
     def redis_test(self) -> str | None:
