@@ -37,13 +37,45 @@ Create the repository ✅
 ---
 
 ## Setup
-To set up all services run these commands:
+To set docker services run this command:
+
+> NOTE: ensure docker desktop is installed on your computer
+
 ```bash
 chmod +x build-services.sh && ./build-services.sh
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
 ```
 
+---
+## Infra
+
+- Docker container contains 4 services:
+
+
+```
+            +-----------------------------+
+            |        Docker Host          |
+            |   (compose / single stack)  |
+            +-----------------------------+
+                        |
+                        v
++--------------------------------------------------+
+|            Docker Container Stack                |
+| (All containers managed together via compose)    |
+|                                                  |
+|  +-----------+    +-----------+    +-----------+ |
+|  |  redis    |    | mongodb   |    |  mysql    | |
+|  | 6379      |    | 27017     |    | 3306      | |
+|  +-----------+    +-----------+    +-----------+ |
+|                                                  |
+|                 +------------------+             |           
+|                 |   python api     |             |           
+|                 |  FastAPI +       |             |           
+|                 |  Strawberry GQL  |             | /graphql  
+|                 |  exposes:        | <------------------------->      
+|                 |   /graphql       |             |
+|                 +------------------+             |
+|                                                  |
++--------------------------------------------------+
+```
 
 
