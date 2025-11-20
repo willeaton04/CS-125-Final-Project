@@ -1,0 +1,7 @@
+# FAKE DATA
+
+CREATE DATABASE IF NOT EXISTS YouthGroup;
+USE YouthGroup;
+
+
+

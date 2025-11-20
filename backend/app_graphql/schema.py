@@ -30,7 +30,6 @@ def get_mongo_conn():
 
 
 # GraphQL Schema
-
 @strawberry.type
 class Query:
     hello: str='Hello!'
