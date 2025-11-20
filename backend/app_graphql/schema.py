@@ -38,11 +38,10 @@ class Query:
     @strawberry.field
     def mysql_test(self) -> list[str]:
         conn = get_mysql_conn()
-        with conn.cursor() as cur:  # get dicts
+        with conn.cursor() as cur:
             cur.execute('SHOW DATABASES;')
             rows = cur.fetchall()
 
-        # Extract the database names as strings
         return [row['Database'] for row in rows]
 
     @strawberry.field
