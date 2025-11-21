@@ -5,3 +5,9 @@ USE YouthGroup;
 
 
 
+# ==============================
+#       FOR TESTING
+# ==============================
+CREATE TABLE test (
+    id INTEGER PRIMARY KEY
+);

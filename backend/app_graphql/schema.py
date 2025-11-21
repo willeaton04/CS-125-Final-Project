@@ -10,23 +10,23 @@ from pymongo import MongoClient
 
 # DB helper methods
 
-def get_mysql_conn():
-    return pymysql.connect(
-        host=os.getenv('MYSQL_HOST'),
-        user=os.getenv('MYSQL_USER'),
-        password=os.getenv('MYSQL_PASSWORD'),
-        database=os.getenv('MYSQL_DATABASE'),
-        cursorclass=pymysql.cursors.DictCursor
-    )
+# def get_mysql_conn():
+#     return pymysql.connect(
+#         host=os.getenv('MYSQL_HOST'),
+#         user=os.getenv('MYSQL_USER'),
+#         password=os.getenv('MYSQL_PASSWORD'),
+#         database=os.getenv('MYSQL_DATABASE'),
+#         cursorclass=pymysql.cursors.DictCursor
+#     )
 
-def get_redis_conn():
-    return redis.Redis(host=os.getenv('REDIS_HOST'), port=6379, decode_responses=True)
+# def get_redis_conn():
+#     return redis.Redis(host=os.getenv('REDIS_HOST'), port=6379, decode_responses=True)
 
-def get_mongo_conn():
-    client = MongoClient(
-        f"mongodb://{os.getenv('MONGO_USER')}:{os.getenv('MONGO_PASSWORD')}@{os.getenv('MONGO_HOST')}:27017"
-    )
-    return client['testdb']
+# def get_mongo_conn():
+#     client = MongoClient(
+#         f"mongodb://{os.getenv('MONGO_USER')}:{os.getenv('MONGO_PASSWORD')}@{os.getenv('MONGO_HOST')}:27017"
+#     )
+#     return client['testdb']
 
 
 # GraphQL Schema
