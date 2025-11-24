@@ -8,6 +8,7 @@ from fastapi import FastAPI
 import pymysql
 import redis
 from pymongo import MongoClient
+import os
 # from strawberry.fastapi import GraphQLRouter
 from app_graphql.schema import schema
 
@@ -36,7 +37,87 @@ def get_mongo_conn():
 # app.include_router(graphql_app, prefix="/graphql")
 
 @app.get('/')
-def root():
+async def root():
     return {'message': 'Service is running'}
+
+@app.get('/student/')
+async def get_all_students():
+    pass
+
+@app.get('/leader/')
+async def get_all_leaders():
+    pass
+
+@app.get('/event/')
+async def get_events():
+    pass
+
+@app.get('/camp/')
+async def get_camps():
+    pass
+
+@app.get('/venue/')
+async def get_venues():
+    pass
+
+
+@app.get('/student/{studentId}/')
+async def get_student(studentId: int):
+    '''
+    SELECT *
+    FROM Student s
+        JOIN Parent p ON p.ID = s.parentId
+    WHERE ID = ${ID}
+    '''
+    pass
+
+@app.get('/leader/{leaderId}')
+async def get_leader(leaderId: int):
+    pass
+
+@app.get('/event/{eventId}')
+async def get_events(eventId: int):
+    pass
+
+@app.get('/camp/{campId}')
+async def get_events(campId: int):
+    pass
+
+@app.get('/venue/{venueId}')
+async def get_events(venueId: int):
+    pass
+
+
+@app.get('/camp/registration/{campId}')
+async def student_camp_registration(campId: int):
+    pass
+
+@app.get('/leader/smallgroup/{leaderId}')
+async def leader_small_group(leaderId: int):
+    '''
+    SELECT sg.leaderId, s.first_name, s.last_name
+    FROM Student s
+        JOIN SmallGroup sg ON sg.ID = s.smallGroupId
+        JOIN Leader l ON l.leaderId = sg.leaderId
+    WHERE l.leaderId = ${leaderId}
+    '''
+    pass
+
+@app.get('/event/registration/{eventId}')
+async def event_student_attendance(eventId: int):
+    '''
+    SELECT *
+    FROM Event e
+        JOIN StudentAttendance sa ON e.ID = sa.eventId
+        JOIN Student s ON s.ID = sa.studentId
+    WHERE e.ID = ${eventId}
+    '''
+    pass
+
+
+
+
+
+
 
 

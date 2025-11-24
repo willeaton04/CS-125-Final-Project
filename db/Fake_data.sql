@@ -178,4 +178,3 @@ INSERT INTO studentAttendance (studentId, eventId, Timestamp) VALUES
 (18, 2, '2025-06-08 18:00:00'),
 (19, 4, '2025-07-01 09:00:00'),
 (20, 5, '2025-07-15 18:00:00');
-Thanks
