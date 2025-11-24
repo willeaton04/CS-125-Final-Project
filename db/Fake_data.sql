@@ -3,7 +3,7 @@
 USE YouthGroup;
 
 -- Parents (10)
-INSERT INTO Parent (id, first_name, last_name, email, phone_number, Note) VALUES
+INSERT INTO Parent (id, first_name, last_name, email, phone_number, note) VALUES
 (1, 'Karen', 'Mitchell', 'karen.mitchell@example.com', '5551000001', 'Allergies: peanuts'),
 (2, 'James', 'Rodriguez', 'james.rodriguez@example.com', '5551000002', ''),
 (3, 'Sofia', 'Nguyen', 'sofia.nguyen@example.com', '5551000003', 'Emergency contact: aunt Elaine'),
@@ -16,7 +16,7 @@ INSERT INTO Parent (id, first_name, last_name, email, phone_number, Note) VALUES
 (10, 'Noah', 'Anderson', 'noah.anderson@example.com', '5551000010', '');
 
 -- Roles (4)
-INSERT INTO Role (id, title, Description) VALUES
+INSERT INTO Role (id, title, description) VALUES
 (1, 'Lead Pastor', 'Senior leader'),
 (2, 'Small Group Leader', 'Leads a small group'),
 (3, 'Volunteer', 'Event volunteer'),
@@ -24,12 +24,12 @@ INSERT INTO Role (id, title, Description) VALUES
 
 -- Leaders (5)
 -- Note: schema did not declare roleId column explicitly, so we only insert declared columns.
-INSERT INTO Leader (id, first_name, last_name, email, phone_number, Note, date_joined, salary) VALUES
-(1, 'Will', 'Eaton', 'will.eaton@example.com', '5552000001', 'Head of youth ministry', '2019-08-01', 45000),
-(2, 'Nice', 'Hirwa', 'nice.hirwa@example.com', '5552000002', 'Student ministry coordinator', '2021-01-15', 30000),
-(3, 'Grace', 'Kim', 'grace.kim@example.com', '5552000003', '', '2020-06-10', 0),
-(4, 'Ben', 'Lopez', 'ben.lopez@example.com', '5552000004', 'Background checked', '2022-03-20', 0),
-(5, 'Hannah', 'Park', 'hannah.park@example.com', '5552000005', '', '2023-09-01', 0);
+INSERT INTO Leader (id, first_name, last_name, email, phone_number, note, date_joined, salary, role_id) VALUES
+(1, 'Will', 'Eaton', 'will.eaton@example.com', '5552000001', 'Head of youth ministry', '2019-08-01', 45000, 3),
+(2, 'Nice', 'Hirwa', 'nice.hirwa@example.com', '5552000002', 'Student ministry coordinator', '2021-01-15', 30000, 4),
+(3, 'Grace', 'Kim', 'grace.kim@example.com', '5552000003', '', '2020-06-10', 0, 1),
+(4, 'Ben', 'Lopez', 'ben.lopez@example.com', '5552000004', 'Background checked', '2022-03-20', 0, 2),
+(5, 'Hannah', 'Park', 'hannah.park@example.com', '5552000005', '', '2023-09-01', 0, 3);
 
 -- Venues (3)
 INSERT INTO Venue (id, address, description) VALUES
@@ -38,7 +38,7 @@ INSERT INTO Venue (id, address, description) VALUES
 (3, '150 Youth Ln', 'Youth Room / Basement');
 
 -- Events (8)
-INSERT INTO Event (id, venue_id, start_time, end_time, Description) VALUES
+INSERT INTO Event (id, venue_id, start_time, end_time, description) VALUES
 (1, 1, '2025-06-01 18:00:00', '2025-06-01 20:00:00', 'Weekly Youth Gathering'),
 (2, 2, '2025-06-08 18:00:00', '2025-06-08 20:00:00', 'Service Night'),
 (3, 3, '2025-06-15 09:00:00', '2025-06-15 16:00:00', 'Day Retreat'),
@@ -63,7 +63,7 @@ INSERT INTO SmallGroup (id, name, leader_id, meeting_time) VALUES
 (5, 'Epsilon Group', 1, '2025-06-07 19:00:00');
 
 -- Students (20) — each student has a parentId and optionally smallGroupId
-INSERT INTO student (id, parentId, smallGroupId, Note, first_name, last_name, email, phone_number) VALUES
+INSERT INTO Student (id, parent_id, small_group_id, note, first_name, last_name, email, phone_number) VALUES
 (1, 1, 1, '', 'Aiden', 'Mitchell', 'aiden.mitchell@example.com', '5553000001'),
 (2, 1, 1, '', 'Lily', 'Mitchell', 'lily.mitchell@example.com', '5553000002'),
 (3, 2, 2, 'Needs asthma inhaler', 'Jacob', 'Rodriguez', 'jacob.rodriguez@example.com', '5553000003'),
@@ -87,7 +87,7 @@ INSERT INTO student (id, parentId, smallGroupId, Note, first_name, last_name, em
 
 -- Invoices (20) — reference parent and optionally student
 -- We create one invoice per camp registration; ids 1..20 to be used by campRegistration.invoiceId
-INSERT INTO invoice (id, parentId, timestamp, amount, studentId) VALUES
+INSERT INTO Invoice (id, parent_id, timestamp, amount, student_id) VALUES
 (1, 1, '2025-05-01 09:00:00', 200, 1),
 (2, 1, '2025-05-01 09:05:00', 200, 2),
 (3, 2, '2025-05-02 10:00:00', 220, 3),
@@ -110,7 +110,7 @@ INSERT INTO invoice (id, parentId, timestamp, amount, studentId) VALUES
 (20, 10, '2025-05-10 18:05:00', 200, 20);
 
 -- Camp Registrations (20) — each references campId (6,7,8), studentId, invoiceId
-INSERT INTO campRegistration (id, campId, studentId, timestamp, invoiceId) VALUES
+INSERT INTO CampRegistration (id, camp_id, student_id, timestamp, invoice_id) VALUES
 (1, 6, 1, '2025-05-01 09:10:00', 1),
 (2, 6, 2, '2025-05-01 09:12:00', 2),
 (3, 6, 3, '2025-05-02 10:10:00', 3),
@@ -133,14 +133,14 @@ INSERT INTO campRegistration (id, campId, studentId, timestamp, invoiceId) VALUE
 (20, 7, 20, '2025-05-10 18:12:00', 20);
 
 -- Shifts (4)
-INSERT INTO shift (id, startTime, endTime) VALUES
+INSERT INTO Shift (id, start_time, end_time) VALUES
 (1, '2025-06-01 17:00:00', '2025-06-01 21:00:00'),
 (2, '2025-06-08 17:00:00', '2025-06-08 21:00:00'),
 (3, '2025-07-01 08:00:00', '2025-07-01 18:00:00'),
 (4, '2025-08-01 07:00:00', '2025-08-07 19:00:00');
 
 -- LeaderShift assignments
-INSERT INTO LeaderShift (leaderId, shiftId) VALUES
+INSERT INTO LeaderShift (leader_id, shift_id) VALUES
 (1, 3),
 (2, 1),
 (2, 4),
@@ -149,7 +149,7 @@ INSERT INTO LeaderShift (leaderId, shiftId) VALUES
 (5, 2);
 
 -- LeaderRole (many-to-many)
-INSERT INTO LeaderRole (LeaderId, RoleId) VALUES
+INSERT INTO LeaderRole (leader_id, role_id) VALUES
 (1, 1),
 (1, 4),
 (2, 4),
@@ -159,7 +159,7 @@ INSERT INTO LeaderRole (LeaderId, RoleId) VALUES
 (5, 3);
 
 -- Student Attendance (some students attend various events)
-INSERT INTO studentAttendance (studentId, eventId, Timestamp) VALUES
+INSERT INTO StudentAttendance (student_id, event_id, timestamp) VALUES
 (1, 1, '2025-06-01 18:00:00'),
 (2, 1, '2025-06-01 18:00:00'),
 (3, 2, '2025-06-08 18:00:00'),
