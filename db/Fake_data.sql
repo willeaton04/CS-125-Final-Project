@@ -3,7 +3,7 @@
 USE YouthGroup;
 
 -- Parents (10)
-INSERT INTO Parent (id, FirstName, LastName, email, phoneNumber, Note) VALUES
+INSERT INTO Parent (id, first_name, last_name, email, phone_number, Note) VALUES
 (1, 'Karen', 'Mitchell', 'karen.mitchell@example.com', '5551000001', 'Allergies: peanuts'),
 (2, 'James', 'Rodriguez', 'james.rodriguez@example.com', '5551000002', ''),
 (3, 'Sofia', 'Nguyen', 'sofia.nguyen@example.com', '5551000003', 'Emergency contact: aunt Elaine'),
@@ -24,7 +24,7 @@ INSERT INTO Role (id, title, Description) VALUES
 
 -- Leaders (5)
 -- Note: schema did not declare roleId column explicitly, so we only insert declared columns.
-INSERT INTO Leader (id, FirstName, LastName, email, phoneNumber, Note, dateJoined, Salary) VALUES
+INSERT INTO Leader (id, first_name, last_name, email, phone_number, Note, date_joined, salary) VALUES
 (1, 'Will', 'Eaton', 'will.eaton@example.com', '5552000001', 'Head of youth ministry', '2019-08-01', 45000),
 (2, 'Nice', 'Hirwa', 'nice.hirwa@example.com', '5552000002', 'Student ministry coordinator', '2021-01-15', 30000),
 (3, 'Grace', 'Kim', 'grace.kim@example.com', '5552000003', '', '2020-06-10', 0),
@@ -38,7 +38,7 @@ INSERT INTO Venue (id, address, description) VALUES
 (3, '150 Youth Ln', 'Youth Room / Basement');
 
 -- Events (8)
-INSERT INTO Event (id, venueId, startTime, endTime, Description) VALUES
+INSERT INTO Event (id, venue_id, start_time, end_time, Description) VALUES
 (1, 1, '2025-06-01 18:00:00', '2025-06-01 20:00:00', 'Weekly Youth Gathering'),
 (2, 2, '2025-06-08 18:00:00', '2025-06-08 20:00:00', 'Service Night'),
 (3, 3, '2025-06-15 09:00:00', '2025-06-15 16:00:00', 'Day Retreat'),
@@ -49,13 +49,13 @@ INSERT INTO Event (id, venueId, startTime, endTime, Description) VALUES
 (8, 3, '2025-12-20 18:00:00', '2025-12-20 21:00:00', 'Christmas Youth Party');
 
 -- Camps (3) — camp.id MUST equal an event.id (camp is a subtype of event)
-INSERT INTO camp (id) VALUES
+INSERT INTO Camp (id) VALUES
 (6),
 (7),
 (8);
 
 -- Small groups (5) — reference existing leaders
-INSERT INTO smallGroup (id, Name, LeaderId, meetingTime) VALUES
+INSERT INTO SmallGroup (id, name, leader_id, meeting_time) VALUES
 (1, 'Alpha Group', 2, '2025-06-03 19:00:00'),
 (2, 'Beta Group', 3, '2025-06-04 19:30:00'),
 (3, 'Gamma Group', 4, '2025-06-05 18:30:00'),
@@ -63,7 +63,7 @@ INSERT INTO smallGroup (id, Name, LeaderId, meetingTime) VALUES
 (5, 'Epsilon Group', 1, '2025-06-07 19:00:00');
 
 -- Students (20) — each student has a parentId and optionally smallGroupId
-INSERT INTO student (id, parentId, smallGroupId, Note, FirstName, LastName, email, phoneNumber) VALUES
+INSERT INTO student (id, parentId, smallGroupId, Note, first_name, last_name, email, phone_number) VALUES
 (1, 1, 1, '', 'Aiden', 'Mitchell', 'aiden.mitchell@example.com', '5553000001'),
 (2, 1, 1, '', 'Lily', 'Mitchell', 'lily.mitchell@example.com', '5553000002'),
 (3, 2, 2, 'Needs asthma inhaler', 'Jacob', 'Rodriguez', 'jacob.rodriguez@example.com', '5553000003'),
