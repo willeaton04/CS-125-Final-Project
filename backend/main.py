@@ -3,8 +3,7 @@
 
 builds entrypoint for graphql using FastAPI
 '''
-
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 import pymysql
 import redis
 from pymongo import MongoClient
@@ -42,7 +41,40 @@ async def root():
 
 @app.get('/student/')
 async def get_all_students():
-    pass
+    conn = get_mysql_conn()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute('USE YouthGroup;')
+            cursor.execute(
+'''
+    SELECT 
+        CONCAT(p.first_name, ' ', p.last_name) AS parent_name,
+        CONCAT(s.first_name, ' ', s.last_name) AS student_name,
+        sg.name AS small_group_name,
+        CONCAT(l.first_name, ' ', l.last_name) AS small_group_leader_name,
+        s.email AS email,
+        s.phone_number AS phone_number,
+        s.note AS note
+    FROM Student s
+    JOIN Parent p ON s.parent_id = p.id
+    JOIN SmallGroup sg ON sg.id = s.small_group_id
+    JOIN Leader l ON sg.leader_id = l.id;
+''')
+            results = cursor.fetchall()
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Database query failed: {str(e)}"
+        )
+    conn.close()
+
+    if not results:
+        raise HTTPException(
+            status_code=404,
+            detail="No students found"
+        )
+
+    return results
 
 @app.get('/leader/')
 async def get_all_leaders():
