@@ -1,7 +1,9 @@
 # FAKE DATA
 
+USE YouthGroup;
+
 -- Parents (10)
-INSERT INTO parent (id, FirstName, LastName, email, phoneNumber, Note) VALUES
+INSERT INTO Parent (id, FirstName, LastName, email, phoneNumber, Note) VALUES
 (1, 'Karen', 'Mitchell', 'karen.mitchell@example.com', '5551000001', 'Allergies: peanuts'),
 (2, 'James', 'Rodriguez', 'james.rodriguez@example.com', '5551000002', ''),
 (3, 'Sofia', 'Nguyen', 'sofia.nguyen@example.com', '5551000003', 'Emergency contact: aunt Elaine'),
@@ -30,13 +32,13 @@ INSERT INTO Leader (id, FirstName, LastName, email, phoneNumber, Note, dateJoine
 (5, 'Hannah', 'Park', 'hannah.park@example.com', '5552000005', '', '2023-09-01', 0);
 
 -- Venues (3)
-INSERT INTO venue (id, address, description) VALUES
+INSERT INTO Venue (id, address, description) VALUES
 (1, '100 Church St', 'Main Sanctuary'),
 (2, '200 Fellowship Rd', 'Fellowship Hall'),
 (3, '150 Youth Ln', 'Youth Room / Basement');
 
 -- Events (8)
-INSERT INTO event (id, venueId, startTime, endTime, Description) VALUES
+INSERT INTO Event (id, venueId, startTime, endTime, Description) VALUES
 (1, 1, '2025-06-01 18:00:00', '2025-06-01 20:00:00', 'Weekly Youth Gathering'),
 (2, 2, '2025-06-08 18:00:00', '2025-06-08 20:00:00', 'Service Night'),
 (3, 3, '2025-06-15 09:00:00', '2025-06-15 16:00:00', 'Day Retreat'),
