@@ -18,7 +18,7 @@ def get_mysql_conn():
         host=os.getenv('MYSQL_HOST'),
         user=os.getenv('MYSQL_USER'),
         password=os.getenv('MYSQL_PASSWORD'),
-        database=os.getenv('MYSQL_DATABASE'),
+        database=os.getenv('MYSQL_DATABASE'), # This takes in my youth group already, so no reason of calling it each time!?
         cursorclass=pymysql.cursors.DictCursor
     )
 
@@ -39,12 +39,11 @@ def get_mongo_conn():
 async def root():
     return {'message': 'Service is running'}
 
-@app.get('/student/')
+@app.get('/student')
 async def get_all_students():
     conn = get_mysql_conn()
     try:
-        with conn.cursor() as cursor:
-            cursor.execute('USE YouthGroup;')
+        with conn.cursor(dictionary=True) as cursor:
             cursor.execute(
 '''
     SELECT 
@@ -66,7 +65,8 @@ async def get_all_students():
             status_code=500,
             detail=f"Database query failed: {str(e)}"
         )
-    conn.close()
+    finally:
+        conn.close()
 
     if not results:
         raise HTTPException(
@@ -76,75 +76,461 @@ async def get_all_students():
 
     return results
 
-@app.get('/leader/')
+@app.get('/parent')
+async def get_all_parents():
+    conn = get_mysql_conn()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute(
+                '''
+                    SELECT 
+                        CONCAT(p.first_name, ' ', p.last_name) AS parent_name,
+                        CONCAT(s.first_name, ' ', s.last_name) AS student_name,
+                        p.email AS email,
+                        p.phone_number AS phone_number,
+                        p.note AS note
+                    FROM Parent p
+                    JOIN Student s ON s.parent_id = p.id;
+                ''')
+            results = cursor.fetchall()
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Database query failed: {str(e)}"
+        )
+    finally:
+        conn.close()
+
+    if not results:
+        raise HTTPException(
+            status_code=404,
+            detail="No parent found"
+        )
+
+    return results
+
+@app.get('/leader')
 async def get_all_leaders():
-    pass
+    conn = get_mysql_conn()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute(
+'''
+    SELECT 
+        CONCAT(l.first_name, ' ', l.last_name) AS leader_name,
+        sg.name AS small_group_name,
+        l.datejoined AS datejoined,
+        CONCAT(l.first_name, ' ', l.last_name) AS small_group_leader_name,
+        l.email AS email,
+        l.phone_number AS phone_number,
+        l.salary AS salary,
+        l.note AS note
+    FROM Leader l
+    JOIN LeaderRole lr ON lr.leader_id = l.id
+    JOIN SmallGroup sg ON sg.leader_id = l.id
+    JOIN LeaderShift ls ON ls.leader_id = l.id;
+''')
+            results = cursor.fetchall()
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Database query failed: {str(e)}"
+        )
+    finally:
+        conn.close()
+
+    if not results:
+        raise HTTPException(
+            status_code=404,
+            detail="No leaders found"
+        )
+
+    return results
+
 
 @app.get('/event/')
-async def get_events():
-    pass
+async def get_all_events():
+    conn = get_mysql_conn()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute(
+'''
+    SELECT 
+        e.startTime AS StartTime,
+        e.endTime AS EndTime,
+        e.description AS description
+    FROM Event e
+    JOIN venue v ON e.venue_id = v.id
+    JOIN StudentAttendance sa ON sa.event_id = e.id;
+''')
+            results = cursor.fetchall()
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Database query failed: {str(e)}"
+        )
+    finally:
+        conn.close()
+
+    if not results:
+        raise HTTPException(
+            status_code=404,
+            detail="No events found"
+        )
+
+    return results
 
 @app.get('/camp/')
 async def get_camps():
-    pass
+    conn = get_mysql_conn()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute(
+                '''
+                    SELECT 
+                        c.id as CampNumber
+                    FROM Camp c
+                    JOIN event e ON e.id = c.id;
+                ''')
+            results = cursor.fetchall()
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Database query failed: {str(e)}"
+        )
+    finally:
+        conn.close()
+
+    if not results:
+        raise HTTPException(
+            status_code=404,
+            detail="No camps found"
+        )
+
+    return results
 
 @app.get('/venue/')
 async def get_venues():
-    pass
+    conn = get_mysql_conn()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute(
+                '''
+                    SELECT 
+                        v.adress as VenueAdress,
+                        v.description AS description
+                    FROM Venue v
+                    JOIN event e ON e.venue_id = v.id;
+                ''')
+            results = cursor.fetchall()
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Database query failed: {str(e)}"
+        )
+    finally:
+        conn.close()
+
+    if not results:
+        raise HTTPException(
+            status_code=404,
+            detail="No venues found"
+        )
+
+    return results
 
 
 @app.get('/student/{studentId}/')
 async def get_student(studentId: int):
-    '''
-    SELECT *
-    FROM Student s
-        JOIN Parent p ON p.ID = s.parentId
-    WHERE ID = ${ID}
-    '''
-    pass
+    conn = get_mysql_conn()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute(
+                '''
+                   SELECT 
+        CONCAT(p.first_name, ' ', p.last_name) AS parent_name,
+        CONCAT(s.first_name, ' ', s.last_name) AS student_name,
+        sg.name AS small_group_name,
+        CONCAT(l.first_name, ' ', l.last_name) AS small_group_leader_name,
+        s.email AS email,
+        s.phone_number AS phone_number,
+        s.note AS note,
+        p.email AS parent_email,
+        P.phone_number AS parent_phone,
+        p.note AS parent_note
+        FROM Student s
+        JOIN Parent p ON s.parent_id = p.id
+        JOIN SmallGroup sg ON sg.id = s.small_group_id
+        JOIN studentAttendance sa ON sa.student_id = s.id;
+        -- Should I add camp registration or not? ;
+                ''')
+            results = cursor.fetchall()
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Database query failed: {str(e)}"
+        )
+    finally:
+        conn.close()
+
+    if not results:
+        raise HTTPException(
+            status_code=404,
+            detail="Student with ID {studentId} not found"
+        )
+
+    return results
+
 
 @app.get('/leader/{leaderId}')
 async def get_leader(leaderId: int):
-    pass
+    conn = get_mysql_conn()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute(
+                '''
+                    SELECT 
+                        CONCAT(l.first_name, ' ', l.last_name) AS leader_name,
+                        sg.name AS small_group_name,
+                        l.datejoined AS datejoined,
+                        CONCAT(l.first_name, ' ', l.last_name) AS small_group_leader_name,
+                        l.email AS email,
+                        l.phone_number AS phone_number,
+                        l.salary AS salary,
+                        r.title AS title,
+                        r.desc AS description,
+                        s.startTime AS ShiftStartTime,
+                        s.endTime AS ShiftEndTime,
+                        l.note AS note
+                    FROM Leader l
+                    JOIN LeaderRole lr ON lr.leader_id = l.id
+                    Join role l ON lr.roleId = r.id
+                    Join leaderShift ls ON ls.leader_id = l.id;
+                    Join Shift s ON s.id = ls.shift_id
+                    JOIN SmallGroup sg ON sg.leader_id = l.id
+                    JOIN LeaderShift ls ON ls.leader_id = l.id;
+                ''')
+            results = cursor.fetchall()
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Database query failed: {str(e)}"
+        )
+    finally:
+        conn.close()
+
+    if not results:
+        raise HTTPException(
+            status_code=404,
+            detail="Leader with ID {leaderId} not found"
+        )
+
+    return results
 
 @app.get('/event/{eventId}')
 async def get_events(eventId: int):
-    pass
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute(
+                '''
+                    SELECT 
+                        e.startTime AS StartTime,
+                        e.endTime AS EndTime,
+                        sa.studentId AS studentId,
+                        v.adress as VenueAdress,
+                        e.description AS description
+                    FROM Event e
+                    JOIN venue v ON e.venue_id = v.id
+                    JOIN StudentAttendance sa ON sa.event_id = e.id;
+                ''')
+            results = cursor.fetchall()
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Database query failed: {str(e)}"
+        )
+    finally:
+        conn.close()
+
+    if not results:
+        raise HTTPException(
+            status_code=404,
+            detail="No events with {eventId} found"
+        )
+
+    return results
 
 @app.get('/camp/{campId}')
 async def get_events(campId: int):
-    pass
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute(
+                '''
+                    SELECT 
+                        c.id as CampNumber,
+                        e.startTime AS StartTime,
+                        e.endTime AS EndTime,
+                        e.desc as description
+                    FROM Camp c
+                    JOIN event e ON e.id = c.id;
+                ''')
+            results = cursor.fetchall()
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Database query failed: {str(e)}"
+        )
+    finally:
+        conn.close()
+
+    if not results:
+        raise HTTPException(
+            status_code=404,
+            detail="No camps found"
+        )
+
+    return results
 
 @app.get('/venue/{venueId}')
 async def get_events(venueId: int):
-    pass
+    conn = get_mysql_conn()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute(
+                '''
+                    SELECT 
+                        v.adress as VenueAdress,
+                        v.description AS description,
+                        e.desc AS description
+                    FROM Venue v
+                    JOIN event e ON e.venue_id = v.id;
+                ''')
+            results = cursor.fetchall()
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Database query failed: {str(e)}"
+        )
+    finally:
+        conn.close()
+
+    if not results:
+        raise HTTPException(
+            status_code=404,
+            detail="No venues found"
+        )
+
+    return results
 
 
 @app.get('/camp/registration/{campId}')
 async def student_camp_registration(campId: int):
-    pass
+    conn = get_mysql_conn()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute(
+                '''
+                    SELECT 
+                         CONCAT(s.first_name, ' ', s.last_name) AS student_name,
+                        c.id AS campId,
+                        cp.timestamp AS RegisteredTime,
+                        i.amount AS AmountPaid,
+                         CONCAT(p.first_name, ' ', p.last_name) AS parent_name
+                         e.description AS description,
+                    FROM CampRegistration c
+                    JOIN camp c ON cp.camp_id = c.id 
+                    JOIN event ON c.id = e.id
+                    JOIN Invoice i ON cp.invoice_id = i.id
+                    JOIN student s ON s.id = cp.student_id
+                    JOIN parent p ON s.parent_id = p.id;
+                ''')
+            results = cursor.fetchall()
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Database query failed: {str(e)}"
+        )
+    finally:
+        conn.close()
+
+    if not results:
+        raise HTTPException(
+            status_code=404,
+            detail="No Camp Registration found"
+        )
+
+    return results
 
 @app.get('/leader/smallgroup/{leaderId}')
 async def leader_small_group(leaderId: int):
+    conn = get_mysql_conn()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute(
     '''
-    SELECT sg.leaderId, s.first_name, s.last_name
+    SELECT  
+    CONCAT(l.first_name, ' ', l.last_name) AS leader_name, 
+    sg.name AS small_group_name,
+    sg.meetingTime AS MeetingTime,
+    CONCAT(s.first_name, ' ', s.last_name) AS student_name,
     FROM Student s
         JOIN SmallGroup sg ON sg.ID = s.smallGroupId
         JOIN Leader l ON l.leaderId = sg.leaderId
     WHERE l.leaderId = ${leaderId}
-    '''
-    pass
+   ''')
+            results = cursor.fetchall()
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Database query failed: {str(e)}"
+        )
+    finally:
+        conn.close()
+
+    if not results:
+        raise HTTPException(
+            status_code=404,
+            detail="That small group isn't found"
+        )
+
+    return results
+
 
 @app.get('/event/registration/{eventId}')
 async def event_student_attendance(eventId: int):
+
+    conn = get_mysql_conn()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute(
     '''
     SELECT *
     FROM Event e
         JOIN StudentAttendance sa ON e.ID = sa.eventId
         JOIN Student s ON s.ID = sa.studentId
     WHERE e.ID = ${eventId}
-    '''
-    pass
+    ''')
+            results = cursor.fetchall()
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Database query failed: {str(e)}"
+        )
+    finally:
+        conn.close()
+
+    if not results:
+        raise HTTPException(
+            status_code=404,
+            detail="That event doesn't exist in our db"
+        )
+
+    return results
+
+# To do list:
+# 1. check the fetch all, fetch one logic
+# 2. Check the logic of each and every endpoint
+# 3. Check the last one again!
 
 
 
