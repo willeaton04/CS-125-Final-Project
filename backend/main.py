@@ -264,7 +264,7 @@ async def get_student(studentId: int):
         JOIN studentAttendance sa ON sa.student_id = s.id;
         -- Should I add camp registration or not? ;
                 ''')
-            results = cursor.fetchall()
+            results = cursor.fetchone()
     except Exception as e:
         raise HTTPException(
             status_code=500,
@@ -310,7 +310,7 @@ async def get_leader(leaderId: int):
                     JOIN SmallGroup sg ON sg.leader_id = l.id
                     JOIN LeaderShift ls ON ls.leader_id = l.id;
                 ''')
-            results = cursor.fetchall()
+            results = cursor.fetchone()
     except Exception as e:
         raise HTTPException(
             status_code=500,
@@ -478,7 +478,7 @@ async def leader_small_group(leaderId: int):
         JOIN Leader l ON l.leaderId = sg.leaderId
     WHERE l.leaderId = ${leaderId}
    ''')
-            results = cursor.fetchall()
+            results = cursor.fetchone()
     except Exception as e:
         raise HTTPException(
             status_code=500,
@@ -528,7 +528,7 @@ async def event_student_attendance(eventId: int):
     return results
 
 # To do list:
-# 1. check the fetch all, fetch one logic
+# 1. check the fetch all (Done)
 # 2. Check the logic of each and every endpoint
 # 3. Check the last one again!
 
