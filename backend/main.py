@@ -492,18 +492,16 @@ async def student_camp_registration(campId: int):
             cursor.execute(
                 '''
                     SELECT 
-                         CONCAT(s.first_name, ' ', s.last_name) AS student_name,
                         c.id AS campId,
-                        cp.timestamp AS RegisteredTime,
                         i.amount AS AmountPaid,
-                         CONCAT(p.first_name, ' ', p.last_name) AS parent_name
-                         e.description AS description,
-                    FROM CampRegistration c
+                        e.description AS description,
+                        v.adress AS VenueAdress,
+                        v.desc AS description
+                    FROM CampRegistration cp
                     JOIN camp c ON cp.camp_id = c.id 
-                    JOIN event ON c.id = e.id
-                    JOIN Invoice i ON cp.invoice_id = i.id
-                    JOIN student s ON s.id = cp.student_id
-                    JOIN parent p ON s.parent_id = p.id;
+                    JOIN event e ON c.id = e.id
+                    JOIN venue v ON e.venue_id = v.id 
+                    JOIN Invoice i ON cp.invoice_id = i.id;
                 ''')
             results = cursor.fetchall()
     except Exception as e:
@@ -534,7 +532,7 @@ async def leader_small_group(leaderId: int):
     CONCAT(l.first_name, ' ', l.last_name) AS leader_name, 
     sg.name AS small_group_name,
     sg.meetingTime AS MeetingTime,
-    CONCAT(s.first_name, ' ', s.last_name) AS student_name,
+    CONCAT(s.first_name, ' ', s.last_name) AS student_name
     FROM Student s
         JOIN SmallGroup sg ON sg.ID = s.smallGroupId
         JOIN Leader l ON l.leaderId = sg.leaderId
@@ -573,6 +571,49 @@ async def event_student_attendance(eventId: int):
         JOIN Student s ON s.ID = sa.studentId
     WHERE e.ID = ${eventId}
     ''')
+            results = cursor.fetchall()
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Database query failed: {str(e)}"
+        )
+    finally:
+        conn.close()
+
+    if not results:
+        raise HTTPException(
+            status_code=404,
+            detail="That event doesn't exist in our db"
+        )
+
+    return results
+
+@app.get('/campregistration/student/{student_id}')
+async def campregistration_students(student_id: int):
+
+    conn = get_mysql_conn()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute('USE YouthGroup;')
+            cursor.execute(
+
+                '''
+                    SELECT
+                         CONCAT(s.first_name, ' ', s.last_name) AS student_name,
+                        c.id AS campId,
+                        cp.timestamp AS RegisteredTime,
+                        i.amount AS AmountPaid,
+                         CONCAT(p.first_name, ' ', p.last_name) AS parent_name,
+                         e.description AS description,
+                         v.adress AS VenueAdress
+                    FROM CampRegistration cp
+                    JOIN Invoice i ON cp.invoice_id = i.id
+                    JOIN student s ON s.id = i.student_id
+                    JOIN parent p ON s.parent_id = p.id
+                    JOIN camp c ON cp.camp_id = c.id 
+                    JOIN event e ON c.id = e.id
+                    JOIN venue v ON e.venue_id = v.id;
+                ''')
             results = cursor.fetchall()
     except Exception as e:
         raise HTTPException(
