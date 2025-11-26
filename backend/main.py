@@ -45,7 +45,7 @@ async def root():
 async def get_all_students():
     conn = get_mysql_conn()
     try:
-        with conn.cursor(dictionary=True) as cursor:
+        with conn.cursor() as cursor:
             cursor.execute('USE YouthGroup;')
             cursor.execute(
 
@@ -84,20 +84,24 @@ async def get_all_students():
 async def get_all_parents():
     conn = get_mysql_conn()
     try:
-        with conn.cursor() as cursor:
+        with conn.cursor(pymysql.cursors.DictCursor) as cursor:
             cursor.execute('USE YouthGroup;')
             cursor.execute(
                 '''
-                    SELECT 
-                        CONCAT(p.first_name, ' ', p.last_name) AS parent_name,
-                        CONCAT(s.first_name, ' ', s.last_name) AS student_name,
-                        p.email AS email,
-                        p.phone_number AS phone_number,
-                        p.note AS note
-                    FROM Parent p
-                    JOIN Student s ON s.parent_id = p.id;
-                ''')
-            results = cursor.fetchall()
+                SELECT 
+                    p.id AS parent_id,
+                    CONCAT(p.first_name, ' ', p.last_name) AS parent_name,
+                    p.email AS email,
+                    p.phone_number AS phone_number,
+                    p.note AS note,
+                    CONCAT(s.first_name, ' ', s.last_name) AS student_name
+                FROM Parent p
+                JOIN Student s ON s.parent_id = p.id
+                ORDER BY p.id;
+                '''
+            )
+            rows = cursor.fetchall()
+
     except Exception as e:
         raise HTTPException(
             status_code=500,
@@ -106,13 +110,29 @@ async def get_all_parents():
     finally:
         conn.close()
 
-    if not results:
-        raise HTTPException(
-            status_code=404,
-            detail="No parent found"
-        )
+    if not rows:
+        raise HTTPException(status_code=404, detail="No parents found")
 
-    return results
+    # ---- Grouping logic ----
+    parents = {}
+
+    for row in rows:
+        pid = row["parent_id"]
+
+        if pid not in parents:
+            parents[pid] = {
+                "parent_id": pid,
+                "parent_name": row["parent_name"],
+                "email": row["email"],
+                "phone_number": row["phone_number"],
+                "note": row["note"],
+                "students": []
+            }
+
+        parents[pid]["students"].append(row["student_name"])
+
+    return list(parents.values())
+
 
 @app.get('/leader')
 async def get_all_leaders():
