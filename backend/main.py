@@ -134,44 +134,68 @@ async def get_all_parents():
     return list(parents.values())
 
 
+import pymysql.cursors
+
 @app.get('/leader')
 async def get_all_leaders():
     conn = get_mysql_conn()
     try:
-        with conn.cursor() as cursor:
+        with conn.cursor(pymysql.cursors.DictCursor) as cursor:
             cursor.execute('USE YouthGroup;')
-            cursor.execute(
-'''
-    SELECT 
-        CONCAT(l.first_name, ' ', l.last_name) AS leader_name,
-        sg.name AS small_group_name,
-        l.datejoined AS datejoined,
-        CONCAT(l.first_name, ' ', l.last_name) AS small_group_leader_name,
-        l.email AS email,
-        l.phone_number AS phone_number,
-        l.salary AS salary,
-        l.note AS note
-    FROM Leader l
-    JOIN LeaderRole lr ON lr.leader_id = l.id
-    JOIN SmallGroup sg ON sg.leader_id = l.id
-    JOIN LeaderShift ls ON ls.leader_id = l.id;
-''')
-            results = cursor.fetchall()
+            cursor.execute('''
+                SELECT 
+                    l.id AS leader_id,
+                    CONCAT(l.first_name, ' ', l.last_name) AS leader_name,
+                    sg.name AS small_group_name,
+                    l.date_joined AS datejoined,
+                    l.email AS email,
+                    l.phone_number AS phone_number,
+                    l.salary AS salary,
+                    l.note AS note,
+                    s.start_time AS shift_start,
+                    s.end_time AS shift_end
+                FROM Leader l
+                LEFT JOIN SmallGroup sg ON sg.leader_id = l.id
+                LEFT JOIN LeaderShift ls ON ls.leader_id = l.id
+                LEFT JOIN Shift s ON ls.shift_id = s.id;
+            ''')
+            rows = cursor.fetchall()
+
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Database query failed: {str(e)}"
-        )
+        raise HTTPException(500, f"Database query failed: {str(e)}")
+
     finally:
         conn.close()
 
-    if not results:
-        raise HTTPException(
-            status_code=404,
-            detail="No leaders found"
-        )
+    if not rows:
+        raise HTTPException(404, "No leaders found")
 
-    return results
+    leaders = {}
+
+    for row in rows:
+        lid = row["leader_id"]
+
+        if lid not in leaders:
+            leaders[lid] = {
+                "leader_id": lid,
+                "leader_name": row["leader_name"],
+                "small_group_name": row["small_group_name"],
+                "datejoined": row["datejoined"],
+                "email": row["email"],
+                "phone_number": row["phone_number"],
+                "salary": row["salary"],
+                "note": row["note"],
+                "shifts": []
+            }
+
+        if row["shift_start"] and row["shift_end"]:
+            leaders[lid]["shifts"].append({
+                "start_time": row["shift_start"],
+                "end_time": row["shift_end"]
+            })
+
+    return list(leaders.values())
+
 
 
 @app.get('/event/')
