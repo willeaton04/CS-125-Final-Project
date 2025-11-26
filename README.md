@@ -35,8 +35,8 @@ Create the repository ✅
 5. Full stack
 
 # This week (20th Nov - 25th Nov )
-1. Nice: Schema sql, generate fake data, two other end points 
-2. Will: End points, container ✅
+1. Nice: Schema sql✅, generate fake data✅, two other end points ✅ 
+2. Will: End points✅, container ✅
 ---
 
 ## Setup
