@@ -270,10 +270,9 @@ async def get_venues():
             cursor.execute(
                 '''
                     SELECT 
-                        v.adress as VenueAdress,
+                        v.address as VenueAdress,
                         v.description AS description
-                    FROM Venue v
-                    JOIN event e ON e.venue_id = v.id;
+                    FROM Venue v;
                 ''')
             results = cursor.fetchall()
     except Exception as e:
@@ -293,31 +292,28 @@ async def get_venues():
     return results
 
 
-@app.get('/student/{studentId}/')
-async def get_student(studentId: int):
+@app.get('/student/{student_id}/')
+async def get_student(student_id: int):
     conn = get_mysql_conn()
     try:
         with conn.cursor() as cursor:
             cursor.execute('USE YouthGroup;')
             cursor.execute(
-                '''
-                   SELECT 
-        CONCAT(p.first_name, ' ', p.last_name) AS parent_name,
-        CONCAT(s.first_name, ' ', s.last_name) AS student_name,
-        sg.name AS small_group_name,
-        CONCAT(l.first_name, ' ', l.last_name) AS small_group_leader_name,
-        s.email AS email,
-        s.phone_number AS phone_number,
-        s.note AS note,
-        p.email AS parent_email,
-        P.phone_number AS parent_phone,
-        p.note AS parent_note
-        FROM Student s
-        JOIN Parent p ON s.parent_id = p.id
-        JOIN SmallGroup sg ON sg.id = s.small_group_id
-        JOIN studentAttendance sa ON sa.student_id = s.id;
-        -- Should I add camp registration or not? ;
-                ''')
+                f"""
+            SELECT 
+                CONCAT(p.first_name, ' ', p.last_name) AS parent_name,
+                CONCAT(s.first_name, ' ', s.last_name) AS student_name,
+                sg.name AS small_group_name,
+                CONCAT(l.first_name, ' ', l.last_name) AS small_group_leader_name,
+                s.email AS email,
+                s.phone_number AS phone_number,
+                s.note AS note
+            FROM Student s
+            JOIN Parent p ON s.parent_id = p.id
+            JOIN SmallGroup sg ON sg.id = s.small_group_id
+            JOIN Leader l ON sg.leader_id = l.id
+            WHERE s.id = {student_id}
+                """)
             results = cursor.fetchone()
     except Exception as e:
         raise HTTPException(
@@ -359,9 +355,9 @@ async def get_leader(leaderId: int):
                         l.note AS note
                     FROM Leader l
                     JOIN LeaderRole lr ON lr.leader_id = l.id
-                    Join role l ON lr.roleId = r.id
-                    Join leaderShift ls ON ls.leader_id = l.id;
-                    Join Shift s ON s.id = ls.shift_id
+                    JOIN role l ON lr.roleId = r.id
+                    JOIN leaderShift ls ON ls.leader_id = l.id
+                    JOIN Shift s ON s.id = ls.shift_id
                     JOIN SmallGroup sg ON sg.leader_id = l.id
                     JOIN LeaderShift ls ON ls.leader_id = l.id;
                 ''')
