@@ -18,7 +18,9 @@ def get_mysql_conn():
         host=os.getenv('MYSQL_HOST'),
         user=os.getenv('MYSQL_USER'),
         password=os.getenv('MYSQL_PASSWORD'),
-        database=os.getenv('MYSQL_DATABASE'), # This takes in my youth group already, so no reason of calling it each time!?
+        database=os.getenv('MYSQL_DATABASE'),
+        # This takes in my youth group already, so no reason of calling it each
+        # time!?
         cursorclass=pymysql.cursors.DictCursor
     )
 
@@ -44,7 +46,9 @@ async def get_all_students():
     conn = get_mysql_conn()
     try:
         with conn.cursor(dictionary=True) as cursor:
+            cursor.execute('USE YouthGroup;')
             cursor.execute(
+
 '''
     SELECT 
         CONCAT(p.first_name, ' ', p.last_name) AS parent_name,
@@ -81,6 +85,7 @@ async def get_all_parents():
     conn = get_mysql_conn()
     try:
         with conn.cursor() as cursor:
+            cursor.execute('USE YouthGroup;')
             cursor.execute(
                 '''
                     SELECT 
@@ -114,6 +119,7 @@ async def get_all_leaders():
     conn = get_mysql_conn()
     try:
         with conn.cursor() as cursor:
+            cursor.execute('USE YouthGroup;')
             cursor.execute(
 '''
     SELECT 
@@ -153,6 +159,7 @@ async def get_all_events():
     conn = get_mysql_conn()
     try:
         with conn.cursor() as cursor:
+            cursor.execute('USE YouthGroup;')
             cursor.execute(
 '''
     SELECT 
@@ -185,6 +192,7 @@ async def get_camps():
     conn = get_mysql_conn()
     try:
         with conn.cursor() as cursor:
+            cursor.execute('USE YouthGroup;')
             cursor.execute(
                 '''
                     SELECT 
@@ -214,6 +222,7 @@ async def get_venues():
     conn = get_mysql_conn()
     try:
         with conn.cursor() as cursor:
+            cursor.execute('USE YouthGroup;')
             cursor.execute(
                 '''
                     SELECT 
@@ -245,6 +254,7 @@ async def get_student(studentId: int):
     conn = get_mysql_conn()
     try:
         with conn.cursor() as cursor:
+            cursor.execute('USE YouthGroup;')
             cursor.execute(
                 '''
                    SELECT 
@@ -287,6 +297,7 @@ async def get_leader(leaderId: int):
     conn = get_mysql_conn()
     try:
         with conn.cursor() as cursor:
+            cursor.execute('USE YouthGroup;')
             cursor.execute(
                 '''
                     SELECT 
@@ -329,8 +340,10 @@ async def get_leader(leaderId: int):
 
 @app.get('/event/{eventId}')
 async def get_events(eventId: int):
+    conn = get_mysql_conn()
     try:
         with conn.cursor() as cursor:
+            cursor.execute('USE YouthGroup;')
             cursor.execute(
                 '''
                     SELECT 
@@ -362,8 +375,10 @@ async def get_events(eventId: int):
 
 @app.get('/camp/{campId}')
 async def get_events(campId: int):
+    conn = get_mysql_conn()
     try:
         with conn.cursor() as cursor:
+            cursor.execute('USE YouthGroup;')
             cursor.execute(
                 '''
                     SELECT 
@@ -396,6 +411,7 @@ async def get_events(venueId: int):
     conn = get_mysql_conn()
     try:
         with conn.cursor() as cursor:
+            cursor.execute('USE YouthGroup;')
             cursor.execute(
                 '''
                     SELECT 
@@ -428,6 +444,7 @@ async def student_camp_registration(campId: int):
     conn = get_mysql_conn()
     try:
         with conn.cursor() as cursor:
+            cursor.execute('USE YouthGroup;')
             cursor.execute(
                 '''
                     SELECT 
@@ -466,6 +483,7 @@ async def leader_small_group(leaderId: int):
     conn = get_mysql_conn()
     try:
         with conn.cursor() as cursor:
+            cursor.execute('USE YouthGroup;')
             cursor.execute(
     '''
     SELECT  
@@ -502,6 +520,7 @@ async def event_student_attendance(eventId: int):
     conn = get_mysql_conn()
     try:
         with conn.cursor() as cursor:
+            cursor.execute('USE YouthGroup;')
             cursor.execute(
     '''
     SELECT *
