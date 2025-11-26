@@ -17,6 +17,11 @@ services:
       - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
+      interval: 5s
+      timeout: 3s
+      retries: 10
 
 
   redis:
@@ -56,16 +61,16 @@ services:
     ports:
       - "8000:8000"
     environment:
-      MYSQL_HOST: $MYSQL_HOST
-      MYSQL_USER: $MYSQL_USER
-      MYSQL_PASSWORD: $MYSQL_PASSWORD
-      MYSQL_DB: $MYSQL_DB
+      MYSQL_HOST: ${MYSQL_HOST}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_DB: ${MYSQL_DATABASE}
 
-      REDIS_HOST: $REDIS_HOST
+      REDIS_HOST: ${REDIS_HOST}
 
-      MONGO_HOST: $MONGO_HOST
-      MONGO_USER: $MONGO_USER
-      MONGO_PASSWORD: $MONGO_PASSWORD
+      MONGO_HOST: ${MONGO_HOST}
+      MONGO_USER: ${MONGO_USER}
+      MONGO_PASSWORD: ${MONGO_PASSWORD}
 
 volumes:
   mysql_data:

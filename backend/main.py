@@ -207,11 +207,11 @@ async def get_all_events():
             cursor.execute(
 '''
     SELECT 
-        e.startTime AS StartTime,
-        e.endTime AS EndTime,
+        e.start_time AS StartTime,
+        e.end_time AS EndTime,
         e.description AS description
     FROM Event e
-    JOIN venue v ON e.venue_id = v.id
+    JOIN Venue v ON e.venue_id = v.id
     JOIN StudentAttendance sa ON sa.event_id = e.id;
 ''')
             results = cursor.fetchall()
