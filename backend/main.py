@@ -546,10 +546,6 @@ async def event_student_attendance(eventId: int):
 
     return results
 
-# To do list:
-# 1. check the fetch all (Done)
-# 2. Check the logic of each and every endpoint
-# 3. Check the last one again!
 
 
 
