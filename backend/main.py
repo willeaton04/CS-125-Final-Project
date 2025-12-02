@@ -637,3 +637,11 @@ async def campregistration_students(student_id: int):
         )
 
     return results
+
+
+
+
+
+
+
+
