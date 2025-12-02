@@ -3,6 +3,7 @@
 
 builds entrypoint for graphql using FastAPI
 '''
+from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 import pymysql
 import redis
@@ -12,6 +13,7 @@ import os
 from app_graphql.schema import schema
 
 app = FastAPI()
+load_dotenv()
 
 def get_mysql_conn():
     return pymysql.connect(
@@ -25,7 +27,16 @@ def get_mysql_conn():
     )
 
 def get_redis_conn():
-    return redis.Redis(host=os.getenv('REDIS_HOST'), port=6379, decode_responses=True)
+
+    print(os.getenv('REDIS_ENDPOINT'))
+
+    return redis.Redis(
+        host= os.getenv('REDIS_ENDPOINT'),
+        port=11044,
+        decode_responses=True,
+        username= os.getenv('REDIS_USERNAME'),
+        password= os.getenv('REDIS_PASSWORD')
+    )
 
 def get_mongo_conn():
     client = MongoClient(
@@ -626,12 +637,3 @@ async def campregistration_students(student_id: int):
         )
 
     return results
-
-
-
-
-
-
-
-
-
