@@ -24,14 +24,14 @@ services:
       retries: 10
 
 
-  redis:
-    image: redis:7
-    container_name: redis-container
-    restart: always
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
+#  redis:
+#    image: redis:7
+#    container_name: redis-container
+#    restart: always
+#    ports:
+#      - "6379:6379"
+#    volumes:
+#      - redis_data:/data
 
 
   mongo:
@@ -67,6 +67,9 @@ services:
       MYSQL_DB: ${MYSQL_DATABASE}
 
       REDIS_HOST: ${REDIS_HOST}
+      REDIS_ENDPOINT: ${REDIS_ENDPOINT}
+      REDIS_USERNAME: ${REDIS_USERNAME}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
 
       MONGO_HOST: ${MONGO_HOST}
       MONGO_USER: ${MONGO_USER}
@@ -74,5 +77,4 @@ services:
 
 volumes:
   mysql_data:
-  redis_data:
   mongo_data:
