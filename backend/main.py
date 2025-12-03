@@ -18,18 +18,14 @@ load_dotenv()
 def get_mysql_conn():
     return pymysql.connect(
         host=os.getenv('MYSQL_HOST'),
+        port=3307,
         user=os.getenv('MYSQL_USER'),
         password=os.getenv('MYSQL_PASSWORD'),
         database=os.getenv('MYSQL_DATABASE'),
-        # This takes in my youth group already, so no reason of calling it each
-        # time!?
         cursorclass=pymysql.cursors.DictCursor
     )
 
 def get_redis_conn():
-
-    print(os.getenv('REDIS_ENDPOINT'))
-
     return redis.Redis(
         host= os.getenv('REDIS_ENDPOINT'),
         port=11044,
