@@ -38,11 +38,11 @@ def get_redis_conn():
         password= os.getenv('REDIS_PASSWORD')
     )
 
-def get_mongo_conn():
-    client = MongoClient(
-        f"mongodb://{os.getenv('MONGO_USER')}:{os.getenv('MONGO_PASSWORD')}@{os.getenv('MONGO_HOST')}:27017"
-    )
-    return client['testdb']
+# def get_mongo_conn():
+#     client = MongoClient(
+#         f"mongodb://{os.getenv('MONGO_USER')}:{os.getenv('MONGO_PASSWORD')}@{os.getenv('MONGO_HOST')}:27017"
+#     )
+#     return client['testdb']
 
 # We'll figure out how to plug in Graphql later :)
 # graphql_app = GraphQLRouter(schema)

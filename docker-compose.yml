@@ -34,17 +34,17 @@ services:
 #      - redis_data:/data
 
 
-  mongo:
-    image: mongo:7
-    container_name: mongo-container
-    restart: always
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongo_data:/data/db
+#  mongo:
+#    image: mongo:7
+#    container_name: mongo-container
+#    restart: always
+#    environment:
+#      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER}
+#      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+#    ports:
+#      - "27017:27017"
+#    volumes:
+#      - mongo_data:/data/db
 
 
   # ---------------------------
@@ -56,7 +56,7 @@ services:
     restart: always
     depends_on:
       - mysql
-      - mongo
+#      - mongo
     ports:
       - "8000:8000"
     environment:
@@ -76,4 +76,4 @@ services:
 
 volumes:
   mysql_data:
-  mongo_data:
+#  mongo_data:
