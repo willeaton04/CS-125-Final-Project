@@ -50,8 +50,9 @@ async def root():
 
 @app.get('/student')
 async def get_all_students():
-    conn = get_mysql_conn()
     try:
+        conn = get_mysql_conn()
+
         with conn.cursor() as cursor:
             cursor.execute('USE YouthGroup;')
             cursor.execute(
@@ -89,8 +90,9 @@ async def get_all_students():
 
 @app.get('/parent')
 async def get_all_parents():
-    conn = get_mysql_conn()
     try:
+        conn = get_mysql_conn()
+
         with conn.cursor(pymysql.cursors.DictCursor) as cursor:
             cursor.execute('USE YouthGroup;')
             cursor.execute(
@@ -145,8 +147,9 @@ import pymysql.cursors
 
 @app.get('/leader')
 async def get_all_leaders():
-    conn = get_mysql_conn()
     try:
+        conn = get_mysql_conn()
+
         with conn.cursor(pymysql.cursors.DictCursor) as cursor:
             cursor.execute('USE YouthGroup;')
             cursor.execute('''
@@ -207,8 +210,9 @@ async def get_all_leaders():
 
 @app.get('/event/')
 async def get_all_events():
-    conn = get_mysql_conn()
     try:
+        conn = get_mysql_conn()
+
         with conn.cursor() as cursor:
             cursor.execute('USE YouthGroup;')
             cursor.execute(
