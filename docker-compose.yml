@@ -56,7 +56,6 @@ services:
     restart: always
     depends_on:
       - mysql
-      - redis
       - mongo
     ports:
       - "8000:8000"
