@@ -14,7 +14,7 @@ services:
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_HOST}
     ports:
-      - "3306:3306"
+      - "3307:3306"
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
@@ -58,7 +58,7 @@ services:
       - mysql
 #      - mongo
     ports:
-      - "8000:8000"
+      - "8001:8000"
     environment:
       MYSQL_HOST: ${MYSQL_HOST}
       MYSQL_USER: ${MYSQL_USER}
