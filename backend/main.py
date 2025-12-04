@@ -46,6 +46,11 @@ def get_mongo_conn():
 # graphql_app = GraphQLRouter(schema)
 # app.include_router(graphql_app, prefix="/graphql")
 
+
+# ======================
+#     REDIS ENDPOINTS
+# ======================
+
 @app.post('/redis/event/registration/{event_id}')
 async def load_student_event_reg(event_id: int):
     try:
@@ -115,9 +120,11 @@ async def load_student_event_reg(event_id: int):
 
             # Save hash into Redis
             redis_conn.hset(key, mapping=redis_data)
+            redis_conn.expire(key, 86400)
 
             # Optional: Keep a list/set of all student keys
             redis_conn.sadd(f"event:{event_id}:students", key)
+            redis_conn.expire(f"event:{event_id}:students", 86400)
 
         return {"message": "Event registration data loaded into Redis", "count": len(results)}
 
@@ -129,6 +136,54 @@ async def load_student_event_reg(event_id: int):
     finally:
         redis_conn.close()
         mysql_conn.close()
+
+
+@app.get("/redis/event/registration/{event_id}")
+async def get_student_event_reg(event_id: int):
+    try:
+        redis_conn = get_redis_conn()
+
+        # Get all student keys for the event
+        student_keys = redis_conn.smembers(f"event:{event_id}:students")
+
+        if not student_keys:
+            return {
+                "event_id": event_id,
+                "registrations": [],
+                "message": "No event registration data found in Redis"
+            }
+
+        registrations = []
+
+        for key in student_keys:
+            # Redis returns bytes → decode to string
+            key = key.decode() if isinstance(key, bytes) else key
+
+            raw_data = redis_conn.hgetall(key)
+
+            # Also convert bytes to strings for each field
+            formatted_data = {
+                k.decode() if isinstance(k, bytes) else k:
+                v.decode() if isinstance(v, bytes) else v
+                for k, v in raw_data.items()
+            }
+
+            # Convert numeric strings to ints where appropriate
+            for numeric_field in ["event_id", "venue_id", "student_id", "parent_id", "small_group_id"]:
+                if numeric_field in formatted_data and formatted_data[numeric_field].isdigit():
+                    formatted_data[numeric_field] = int(formatted_data[numeric_field])
+
+            registrations.append(formatted_data)
+
+        return {
+            "event_id": event_id,
+            "count": len(registrations),
+            "registrations": registrations
+        }
+
+    except Exception as e:
+        print("Redis fetch error:", e)
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # ======================
