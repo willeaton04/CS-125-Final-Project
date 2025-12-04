@@ -2,3 +2,6 @@
 .venv/
 .env
 backend/test.py
+.DS_Store
+API Server Dockerized Demo.zip
+API Server Dockerized Demo/
