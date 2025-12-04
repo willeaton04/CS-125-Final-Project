@@ -57,6 +57,12 @@ async def load_student_event_reg(event_id: int):
         redis_conn = get_redis_conn()
         mysql_conn = get_mysql_conn()
 
+        if redis_conn.exists(f"event:{event_id}:students") == 1:
+            return {
+                "event_id": event_id,
+                'message': 'Data already exists'
+            }
+
         with mysql_conn.cursor() as cursor:
             cursor.execute('USE YouthGroup;')
             cursor.execute(
@@ -83,9 +89,6 @@ async def load_student_event_reg(event_id: int):
                 (event_id,)
             )
             results = cursor.fetchall()
-
-        # Debug print
-        print("MySQL results:", results)
 
         # ---------------------------------------------------------
         # REDIS: FORMAT + STORE
@@ -126,7 +129,7 @@ async def load_student_event_reg(event_id: int):
             redis_conn.sadd(f"event:{event_id}:students", key)
             redis_conn.expire(f"event:{event_id}:students", 86400)
 
-        return {"message": "Event registration data loaded into Redis", "count": len(results)}
+        return {"message": "Event registration data loaded into Redis", "count": len(results), "success": True}
 
     except Exception as e:
         return HTTPException (
@@ -149,7 +152,7 @@ async def get_student_event_reg(event_id: int):
         if not student_keys:
             return {
                 "event_id": event_id,
-                "registrations": [],
+                "registrations": [], # for frontend to decipher
                 "message": "No event registration data found in Redis"
             }
 
@@ -178,12 +181,153 @@ async def get_student_event_reg(event_id: int):
         return {
             "event_id": event_id,
             "count": len(registrations),
-            "registrations": registrations
+            "registrations": registrations,
+            "sucsess": True
         }
 
     except Exception as e:
         print("Redis fetch error:", e)
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.put("/redis/event/registration/{event_id}")
+async def update_student_event_reg(event_id: int):
+    '''
+        This method refreshes redis event registration
+        :param event_id:
+        :return: sql data
+    '''
+    try:
+        redis_conn = get_redis_conn()
+        mysql_conn = get_mysql_conn()
+
+        # --------------------------------------
+        # 1. Fetch the latest MySQL data
+        # --------------------------------------
+        with mysql_conn.cursor() as cursor:
+            cursor.execute("USE YouthGroup;")
+            cursor.execute(
+                """
+                SELECT 
+                    e.id AS event_id,
+                    e.venue_id,
+                    e.start_time,
+                    e.end_time,
+                    e.description,
+                    sa.student_id,
+                    sa.timestamp,
+                    s.note,
+                    s.first_name,
+                    s.last_name,
+                    s.email,
+                    s.phone_number,
+                    s.parent_id,
+                    s.small_group_id
+                FROM Event e
+                JOIN StudentAttendance sa ON e.id = sa.event_id
+                JOIN Student s ON s.id = sa.student_id
+                WHERE e.id = %s;
+                """,
+                (event_id,)
+            )
+            results = cursor.fetchall()
+
+        # --------------------------------------
+        # 2. DELETE OLD REDIS DATA FOR THIS EVENT
+        # --------------------------------------
+        old_keys = redis_conn.smembers(f"event:{event_id}:students")
+
+        # Delete student hashes
+        if old_keys:
+            redis_conn.delete(*old_keys)
+
+        # Delete the student set
+        redis_conn.delete(f"event:{event_id}:students")
+
+        # --------------------------------------
+        # 3. REBUILD REDIS KEYS WITH NEW DATA
+        # --------------------------------------
+        for row in results:
+            student_id = row["student_id"]
+            key = f"event:{event_id}:student:{student_id}"
+
+            redis_data = {
+                "event_id": row["event_id"],
+                "venue_id": row["venue_id"],
+                "start_time": str(row["start_time"]),
+                "end_time": str(row["end_time"]),
+                "description": row["description"],
+                "student_id": student_id,
+                "first_name": row["first_name"],
+                "last_name": row["last_name"],
+                "email": row["email"],
+                "phone_number": row["phone_number"],
+                "parent_id": row["parent_id"],
+                "small_group_id": row["small_group_id"],
+                "timestamp": str(row["timestamp"]),
+                "note": row["note"] or "",
+            }
+
+            # Insert updated hash
+            redis_conn.hset(key, mapping=redis_data)
+            redis_conn.expire(key, 86400)  # TTL 24 hours
+
+            # Add to event student set
+            redis_conn.sadd(f"event:{event_id}:students", key)
+            redis_conn.expire(f"event:{event_id}:students", 86400)
+        return {
+            "message": "Event registration Redis cache updated",
+            "event_id": event_id,
+            "count": len(results),
+            "sucsess": True
+        }
+
+    except Exception as e:
+        print("Error updating Redis:", e)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/redis/event/registration/{event_id}")
+async def delete_student_event_reg(event_id: int):
+    try:
+        redis_conn = get_redis_conn()
+
+        # --------------------------------------
+        # 1. Find all student hash keys
+        # --------------------------------------
+        student_keys = redis_conn.smembers(f"event:{event_id}:students")
+
+        deleted_count = 0
+
+        # --------------------------------------
+        # 2. Delete each student hash
+        # --------------------------------------
+        if student_keys:
+            # Redis returns bytes → convert
+            decoded_keys = [
+                k.decode() if isinstance(k, bytes) else k
+                for k in student_keys
+            ]
+
+            # Delete all hashes at once
+            redis_conn.delete(*decoded_keys)
+            deleted_count += len(decoded_keys)
+
+        # --------------------------------------
+        # 3. Delete the student set itself
+        # --------------------------------------
+        redis_conn.delete(f"event:{event_id}:students")
+
+        return {
+            "message": f"Redis event {event_id} data deleted",
+            "event_id": event_id,
+            "deleted_records": deleted_count,
+            "sucsess": True
+        }
+
+    except Exception as e:
+        print("Error deleting Redis keys:", e)
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 
 # ======================
