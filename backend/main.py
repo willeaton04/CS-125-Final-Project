@@ -46,6 +46,9 @@ def get_mongo_conn():
 # graphql_app = GraphQLRouter(schema)
 # app.include_router(graphql_app, prefix="/graphql")
 
+# ======================
+#    MYSQL ENDPOINTS
+# ======================
 @app.get('/')
 async def root():
     return {'message': 'Service is running'}
@@ -312,7 +315,7 @@ async def get_student(student_id: int):
         with conn.cursor() as cursor:
             cursor.execute('USE YouthGroup;')
             cursor.execute(
-                f"""
+                """
             SELECT 
                 CONCAT(p.first_name, ' ', p.last_name) AS parent_name,
                 CONCAT(s.first_name, ' ', s.last_name) AS student_name,
@@ -325,8 +328,8 @@ async def get_student(student_id: int):
             JOIN Parent p ON s.parent_id = p.id
             JOIN SmallGroup sg ON sg.id = s.small_group_id
             JOIN Leader l ON sg.leader_id = l.id
-            WHERE s.id = {student_id}
-                """)
+            WHERE s.id = %s
+                """, (student_id,))
             results = cursor.fetchone()
     except Exception as e:
         raise HTTPException(
@@ -339,7 +342,7 @@ async def get_student(student_id: int):
     if not results:
         raise HTTPException(
             status_code=404,
-            detail="Student with ID {studentId} not found"
+            detail=f"Student with ID {student_id} not found"
         )
 
     return results
@@ -352,29 +355,27 @@ async def get_leader(leaderId: int):
         with conn.cursor() as cursor:
             cursor.execute('USE YouthGroup;')
             cursor.execute(
-                f'''
+                '''
                     SELECT 
                         CONCAT(l.first_name, ' ', l.last_name) AS leader_name,
                         sg.name AS small_group_name,
-                        l.datejoined AS datejoined,
-                        CONCAT(l.first_name, ' ', l.last_name) AS small_group_leader_name,
+                        l.date_joined AS datejoined,
                         l.email AS email,
                         l.phone_number AS phone_number,
                         l.salary AS salary,
                         r.title AS title,
-                        r.desc AS description,
-                        s.startTime AS ShiftStartTime,
-                        s.endTime AS ShiftEndTime,
+                        r.description AS description,
+                        s.start_time AS ShiftStartTime,
+                        s.end_time AS ShiftEndTime,
                         l.note AS note
                     FROM Leader l
-                    WHERE l.id = {leaderId}
-                    JOIN LeaderRole lr ON lr.leader_id = l.id
-                    JOIN role l ON lr.roleId = r.id
-                    JOIN leaderShift ls ON ls.leader_id = l.id
-                    JOIN Shift s ON s.id = ls.shift_id
-                    JOIN SmallGroup sg ON sg.leader_id = l.id
-                    JOIN LeaderShift ls ON ls.leader_id = l.id;
-                ''')
+                    LEFT JOIN LeaderRole lr ON lr.leader_id = l.id
+                    LEFT JOIN Role r ON lr.role_id = r.id
+                    LEFT JOIN LeaderShift ls ON ls.leader_id = l.id
+                    LEFT JOIN Shift s ON s.id = ls.shift_id
+                    LEFT JOIN SmallGroup sg ON sg.leader_id = l.id
+                    WHERE l.id = %s
+                ''', (leaderId,))
             results = cursor.fetchone()
     except Exception as e:
         raise HTTPException(
@@ -401,15 +402,16 @@ async def get_events(eventId: int):
             cursor.execute(
                 '''
                     SELECT 
-                        e.startTime AS StartTime,
-                        e.endTime AS EndTime,
-                        sa.studentId AS studentId,
-                        v.adress as VenueAdress,
+                        e.start_time AS StartTime,
+                        e.end_time AS EndTime,
+                        sa.student_id AS studentId,
+                        v.address as VenueAdress,
                         e.description AS description
                     FROM Event e
-                    JOIN venue v ON e.venue_id = v.id
-                    JOIN StudentAttendance sa ON sa.event_id = e.id;
-                ''')
+                    JOIN Venue v ON e.venue_id = v.id
+                    JOIN StudentAttendance sa ON sa.event_id = e.id
+                    WHERE e.id = %s;
+                ''', (eventId,))
             results = cursor.fetchall()
     except Exception as e:
         raise HTTPException(
@@ -422,13 +424,13 @@ async def get_events(eventId: int):
     if not results:
         raise HTTPException(
             status_code=404,
-            detail="No events with {eventId} found"
+            detail=f"No events with {eventId} found"
         )
 
     return results
 
 @app.get('/camp/{campId}')
-async def get_events(campId: int):
+async def get_camp(campId: int):
     try:
         conn = get_mysql_conn()
         with conn.cursor() as cursor:
@@ -437,12 +439,13 @@ async def get_events(campId: int):
                 '''
                     SELECT 
                         c.id as CampNumber,
-                        e.startTime AS StartTime,
-                        e.endTime AS EndTime,
-                        e.desc as description
+                        e.start_time AS StartTime,
+                        e.end_time AS EndTime,
+                        e.description as description
                     FROM Camp c
-                    JOIN event e ON e.id = c.id;
-                ''')
+                    JOIN Event e ON e.id = c.id
+                    WHERE c.id = %s;
+                ''', (campId,))
             results = cursor.fetchall()
     except Exception as e:
         raise HTTPException(
@@ -461,7 +464,7 @@ async def get_events(campId: int):
     return results
 
 @app.get('/venue/{venueId}')
-async def get_events(venueId: int):
+async def get_venue(venueId: int):
     try:
         conn = get_mysql_conn()
         with conn.cursor() as cursor:
@@ -469,12 +472,13 @@ async def get_events(venueId: int):
             cursor.execute(
                 '''
                     SELECT 
-                        v.adress as VenueAdress,
+                        v.address as VenueAdress,
                         v.description AS description,
-                        e.desc AS description
+                        e.description AS description
                     FROM Venue v
-                    JOIN event e ON e.venue_id = v.id;
-                ''')
+                    JOIN Event e ON e.venue_id = v.id
+                    WHERE v.id = %s;
+                ''', (venueId,))
             results = cursor.fetchall()
     except Exception as e:
         raise HTTPException(
@@ -505,14 +509,15 @@ async def student_camp_registration(campId: int):
                         c.id AS campId,
                         i.amount AS AmountPaid,
                         e.description AS description,
-                        v.adress AS VenueAdress,
-                        v.desc AS description
+                        v.address AS VenueAdress,
+                        v.description AS description
                     FROM CampRegistration cp
-                    JOIN camp c ON cp.camp_id = c.id 
-                    JOIN event e ON c.id = e.id
-                    JOIN venue v ON e.venue_id = v.id 
-                    JOIN Invoice i ON cp.invoice_id = i.id;
-                ''')
+                    JOIN Camp c ON cp.camp_id = c.id 
+                    JOIN Event e ON c.id = e.id
+                    JOIN Venue v ON e.venue_id = v.id 
+                    JOIN Invoice i ON cp.invoice_id = i.id
+                    WHERE c.id = %s;
+                ''', (campId,))
             results = cursor.fetchall()
     except Exception as e:
         raise HTTPException(
@@ -541,13 +546,14 @@ async def leader_small_group(leaderId: int):
     SELECT  
     CONCAT(l.first_name, ' ', l.last_name) AS leader_name, 
     sg.name AS small_group_name,
-    sg.meetingTime AS MeetingTime,
+    sg.meeting_time AS MeetingTime,
     CONCAT(s.first_name, ' ', s.last_name) AS student_name
     FROM Student s
-        JOIN SmallGroup sg ON sg.ID = s.smallGroupId
-        JOIN Leader l ON l.leaderId = sg.leaderId
-    WHERE l.leaderId = ${leaderId}
-   ''')
+        JOIN SmallGroup sg ON sg.id = s.small_group_id
+        JOIN Leader l ON l.id = sg.leader_id
+    WHERE l.id = %s
+    GROUP BY s.id;
+   ''', (leaderId,))
             results = cursor.fetchone()
     except Exception as e:
         raise HTTPException(
@@ -576,10 +582,10 @@ async def event_student_attendance(eventId: int):
     '''
     SELECT *
     FROM Event e
-        JOIN StudentAttendance sa ON e.ID = sa.eventId
-        JOIN Student s ON s.ID = sa.studentId
-    WHERE e.ID = ${eventId}
-    ''')
+        JOIN StudentAttendance sa ON e.id = sa.event_id
+        JOIN Student s ON s.id = sa.student_id
+    WHERE e.id = %s
+    ''', (eventId,))
             results = cursor.fetchall()
     except Exception as e:
         raise HTTPException(
@@ -598,7 +604,7 @@ async def event_student_attendance(eventId: int):
     return results
 
 @app.get('/campregistration/student/{student_id}')
-async def campregistration_students(student_id: int):
+async def camp_registration_students(student_id: int):
     try:
         conn = get_mysql_conn()
         with conn.cursor() as cursor:
@@ -608,20 +614,21 @@ async def campregistration_students(student_id: int):
                 '''
                     SELECT
                          CONCAT(s.first_name, ' ', s.last_name) AS student_name,
-                        c.id AS campId,
-                        cp.timestamp AS RegisteredTime,
-                        i.amount AS AmountPaid,
+                         c.id AS campId,
+                         cp.timestamp AS RegisteredTime,
+                         i.amount AS AmountPaid,
                          CONCAT(p.first_name, ' ', p.last_name) AS parent_name,
                          e.description AS description,
-                         v.adress AS VenueAdress
+                         v.address AS VenueAdress
                     FROM CampRegistration cp
                     JOIN Invoice i ON cp.invoice_id = i.id
-                    JOIN student s ON s.id = i.student_id
-                    JOIN parent p ON s.parent_id = p.id
-                    JOIN camp c ON cp.camp_id = c.id 
-                    JOIN event e ON c.id = e.id
-                    JOIN venue v ON e.venue_id = v.id;
-                ''')
+                    JOIN Student s ON s.id = i.student_id
+                    JOIN Parent p ON s.parent_id = p.id
+                    JOIN Camp c ON cp.camp_id = c.id 
+                    JOIN Event e ON c.id = e.id
+                    JOIN Venue v ON e.venue_id = v.id
+                    WHERE s.id = %s;
+                ''', (student_id,))
             results = cursor.fetchall()
     except Exception as e:
         raise HTTPException(
