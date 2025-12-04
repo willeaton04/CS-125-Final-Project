@@ -544,17 +544,15 @@ async def leader_small_group(leaderId: int):
             cursor.execute(
     '''
     SELECT  
-    CONCAT(l.first_name, ' ', l.last_name) AS leader_name, 
-    sg.name AS small_group_name,
-    sg.meeting_time AS MeetingTime,
-    CONCAT(s.first_name, ' ', s.last_name) AS student_name
+        sg.name AS small_group_name,
+        sg.meeting_time AS meeting_time,
+        CONCAT(s.first_name, ' ', s.last_name) AS student_name
     FROM Student s
         JOIN SmallGroup sg ON sg.id = s.small_group_id
         JOIN Leader l ON l.id = sg.leader_id
-    WHERE l.id = %s
-    GROUP BY s.id;
-   ''', (leaderId,))
-            results = cursor.fetchone()
+    WHERE l.id = %s;
+    ''', (leaderId,))
+            results = cursor.fetchall()
     except Exception as e:
         raise HTTPException(
             status_code=500,
@@ -615,11 +613,11 @@ async def camp_registration_students(student_id: int):
                     SELECT
                          CONCAT(s.first_name, ' ', s.last_name) AS student_name,
                          c.id AS campId,
-                         cp.timestamp AS RegisteredTime,
-                         i.amount AS AmountPaid,
+                         cp.timestamp AS registered_time,
+                         i.amount AS amount_paid,
                          CONCAT(p.first_name, ' ', p.last_name) AS parent_name,
                          e.description AS description,
-                         v.address AS VenueAdress
+                         v.address AS venue_adress
                     FROM CampRegistration cp
                     JOIN Invoice i ON cp.invoice_id = i.id
                     JOIN Student s ON s.id = i.student_id
