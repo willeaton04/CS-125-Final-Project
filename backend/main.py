@@ -7,7 +7,8 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 import pymysql
 import redis
-from pymongo import MongoClient
+from pymongo.mongo_client import MongoClient
+from pymongo.server_api import ServerApi
 import os
 # from strawberry.fastapi import GraphQLRouter
 from app_graphql.schema import schema
@@ -34,11 +35,12 @@ def get_redis_conn():
         password= os.getenv('REDIS_PASSWORD')
     )
 
-# def get_mongo_conn():
-#     client = MongoClient(
-#         f"mongodb://{os.getenv('MONGO_USER')}:{os.getenv('MONGO_PASSWORD')}@{os.getenv('MONGO_HOST')}:27017"
-#     )
-#     return client['testdb']
+def get_mongo_conn():
+    client = MongoClient(
+        f"mongodb+srv://{os.getenv('MONGO_USER')}:{os.getenv('MONGO_PASSWORD')}@cs-125.3xkvzsq.mongodb.net/?appName=CS-125",
+        server_api=ServerApi('1')
+    )
+    return client
 
 # We'll figure out how to plug in Graphql later :)
 # graphql_app = GraphQLRouter(schema)
@@ -637,3 +639,7 @@ async def campregistration_students(student_id: int):
         )
 
     return results
+
+
+if __name__ == '__main__':
+    get_mongo_conn()

@@ -3,5 +3,5 @@ uvicorn[standard]
 strawberry-graphql
 pymysql
 redis
-pymongo
 cryptography
+pymongo[srv]==3.12
