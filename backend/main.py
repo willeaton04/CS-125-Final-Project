@@ -19,7 +19,7 @@ load_dotenv()
 def get_mysql_conn():
     return pymysql.connect(
         host=os.getenv('MYSQL_HOST'),
-        port=3307,
+        port=3306,
         user=os.getenv('MYSQL_USER'),
         password=os.getenv('MYSQL_PASSWORD'),
         database=os.getenv('MYSQL_DATABASE'),
@@ -347,12 +347,12 @@ async def get_student(student_id: int):
 
 @app.get('/leader/{leaderId}')
 async def get_leader(leaderId: int):
-    conn = get_mysql_conn()
     try:
+        conn = get_mysql_conn()
         with conn.cursor() as cursor:
             cursor.execute('USE YouthGroup;')
             cursor.execute(
-                '''
+                f'''
                     SELECT 
                         CONCAT(l.first_name, ' ', l.last_name) AS leader_name,
                         sg.name AS small_group_name,
@@ -367,6 +367,7 @@ async def get_leader(leaderId: int):
                         s.endTime AS ShiftEndTime,
                         l.note AS note
                     FROM Leader l
+                    WHERE l.id = {leaderId}
                     JOIN LeaderRole lr ON lr.leader_id = l.id
                     JOIN role l ON lr.roleId = r.id
                     JOIN leaderShift ls ON ls.leader_id = l.id
@@ -386,15 +387,15 @@ async def get_leader(leaderId: int):
     if not results:
         raise HTTPException(
             status_code=404,
-            detail="Leader with ID {leaderId} not found"
+            detail=f"Leader with ID {leaderId} not found"
         )
 
     return results
 
 @app.get('/event/{eventId}')
 async def get_events(eventId: int):
-    conn = get_mysql_conn()
     try:
+        conn = get_mysql_conn()
         with conn.cursor() as cursor:
             cursor.execute('USE YouthGroup;')
             cursor.execute(
@@ -428,8 +429,8 @@ async def get_events(eventId: int):
 
 @app.get('/camp/{campId}')
 async def get_events(campId: int):
-    conn = get_mysql_conn()
     try:
+        conn = get_mysql_conn()
         with conn.cursor() as cursor:
             cursor.execute('USE YouthGroup;')
             cursor.execute(
@@ -461,8 +462,8 @@ async def get_events(campId: int):
 
 @app.get('/venue/{venueId}')
 async def get_events(venueId: int):
-    conn = get_mysql_conn()
     try:
+        conn = get_mysql_conn()
         with conn.cursor() as cursor:
             cursor.execute('USE YouthGroup;')
             cursor.execute(
@@ -494,8 +495,8 @@ async def get_events(venueId: int):
 
 @app.get('/camp/registration/{campId}')
 async def student_camp_registration(campId: int):
-    conn = get_mysql_conn()
     try:
+        conn = get_mysql_conn()
         with conn.cursor() as cursor:
             cursor.execute('USE YouthGroup;')
             cursor.execute(
@@ -531,8 +532,8 @@ async def student_camp_registration(campId: int):
 
 @app.get('/leader/smallgroup/{leaderId}')
 async def leader_small_group(leaderId: int):
-    conn = get_mysql_conn()
     try:
+        conn = get_mysql_conn()
         with conn.cursor() as cursor:
             cursor.execute('USE YouthGroup;')
             cursor.execute(
@@ -567,9 +568,8 @@ async def leader_small_group(leaderId: int):
 
 @app.get('/event/registration/{eventId}')
 async def event_student_attendance(eventId: int):
-
-    conn = get_mysql_conn()
     try:
+        conn = get_mysql_conn()
         with conn.cursor() as cursor:
             cursor.execute('USE YouthGroup;')
             cursor.execute(
@@ -599,9 +599,8 @@ async def event_student_attendance(eventId: int):
 
 @app.get('/campregistration/student/{student_id}')
 async def campregistration_students(student_id: int):
-
-    conn = get_mysql_conn()
     try:
+        conn = get_mysql_conn()
         with conn.cursor() as cursor:
             cursor.execute('USE YouthGroup;')
             cursor.execute(
@@ -640,6 +639,3 @@ async def campregistration_students(student_id: int):
 
     return results
 
-
-if __name__ == '__main__':
-    get_mongo_conn()
