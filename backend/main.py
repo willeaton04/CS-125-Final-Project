@@ -46,6 +46,91 @@ def get_mongo_conn():
 # graphql_app = GraphQLRouter(schema)
 # app.include_router(graphql_app, prefix="/graphql")
 
+@app.post('/redis/event/registration/{event_id}')
+async def load_student_event_reg(event_id: int):
+    try:
+        redis_conn = get_redis_conn()
+        mysql_conn = get_mysql_conn()
+
+        with mysql_conn.cursor() as cursor:
+            cursor.execute('USE YouthGroup;')
+            cursor.execute(
+                '''
+                SELECT e.id AS event_id,
+                       e.venue_id,
+                       e.start_time,
+                       e.end_time,
+                       e.description,
+                       sa.student_id,
+                       sa.timestamp,
+                       s.note,
+                       s.first_name,
+                       s.last_name,
+                       s.email,
+                       s.phone_number,
+                       s.parent_id,
+                       s.small_group_id
+                FROM Event e
+                         JOIN StudentAttendance sa ON e.id = sa.event_id
+                         JOIN Student s ON s.id = sa.student_id
+                WHERE e.id = %s
+                ''',
+                (event_id,)
+            )
+            results = cursor.fetchall()
+
+        # Debug print
+        print("MySQL results:", results)
+
+        # ---------------------------------------------------------
+        # REDIS: FORMAT + STORE
+        # ---------------------------------------------------------
+
+        # Clear previous data for this event (optional but common)
+        # redis_conn.delete(f"event:{event_id}:students")
+
+        for row in results:
+            student_id = row["student_id"]
+
+            key = f"event:{event_id}:student:{student_id}"
+
+            redis_data = {
+                "event_id": row["event_id"],
+                "venue_id": row["venue_id"],
+                "start_time": str(row["start_time"]),
+                "end_time": str(row["end_time"]),
+                "description": row["description"],
+
+                "student_id": student_id,
+                "first_name": row["first_name"],
+                "last_name": row["last_name"],
+                "email": row["email"],
+                "phone_number": row["phone_number"],
+                "parent_id": row["parent_id"],
+                "small_group_id": row["small_group_id"],
+
+                "timestamp": str(row["timestamp"]),
+                "note": row["note"] if row["note"] else "",
+            }
+
+            # Save hash into Redis
+            redis_conn.hset(key, mapping=redis_data)
+
+            # Optional: Keep a list/set of all student keys
+            redis_conn.sadd(f"event:{event_id}:students", key)
+
+        return {"message": "Event registration data loaded into Redis", "count": len(results)}
+
+    except Exception as e:
+        return HTTPException (
+            status_code=500,
+            detail=f"Failed to load data into redis {str(e)}"
+        )
+    finally:
+        redis_conn.close()
+        mysql_conn.close()
+
+
 # ======================
 #    MYSQL ENDPOINTS
 # ======================
