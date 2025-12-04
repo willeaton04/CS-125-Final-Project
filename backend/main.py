@@ -333,6 +333,9 @@ async def delete_student_event_reg(event_id: int):
 # ======================
 #    MYSQL ENDPOINTS
 # ======================
+# ======================
+#    MYSQL ENDPOINTS
+# ======================
 @app.get('/')
 async def root():
     return {'message': 'Service is running'}
@@ -769,7 +772,7 @@ async def get_student(student_id: int):
         with conn.cursor() as cursor:
             cursor.execute('USE YouthGroup;')
             cursor.execute(
-                f"""
+                """
             SELECT 
                 CONCAT(p.first_name, ' ', p.last_name) AS parent_name,
                 CONCAT(s.first_name, ' ', s.last_name) AS student_name,
@@ -782,8 +785,8 @@ async def get_student(student_id: int):
             JOIN Parent p ON s.parent_id = p.id
             JOIN SmallGroup sg ON sg.id = s.small_group_id
             JOIN Leader l ON sg.leader_id = l.id
-            WHERE s.id = {student_id}
-                """)
+            WHERE s.id = %s
+                """, (student_id,))
             results = cursor.fetchone()
     except Exception as e:
         raise HTTPException(
@@ -796,7 +799,7 @@ async def get_student(student_id: int):
     if not results:
         raise HTTPException(
             status_code=404,
-            detail="Student with ID {studentId} not found"
+            detail=f"Student with ID {student_id} not found"
         )
 
     return results
@@ -804,24 +807,23 @@ async def get_student(student_id: int):
 
 @app.get('/leader/{leaderId}')
 async def get_leader(leaderId: int):
-    conn = get_mysql_conn()
     try:
+        conn = get_mysql_conn()
         with conn.cursor() as cursor:
             cursor.execute('USE YouthGroup;')
             cursor.execute(
-                f'''
+                '''
                     SELECT 
                         CONCAT(l.first_name, ' ', l.last_name) AS leader_name,
                         sg.name AS small_group_name,
-                        l.datejoined AS datejoined,
-                        CONCAT(l.first_name, ' ', l.last_name) AS small_group_leader_name,
+                        l.date_joined AS datejoined,
                         l.email AS email,
                         l.phone_number AS phone_number,
                         l.salary AS salary,
                         r.title AS title,
-                        r.desc AS description,
-                        s.startTime AS ShiftStartTime,
-                        s.endTime AS ShiftEndTime,
+                        r.description AS description,
+                        s.start_time AS ShiftStartTime,
+                        s.end_time AS ShiftEndTime,
                         l.note AS note
                     FROM Leader l
                     LEFT JOIN LeaderRole lr ON lr.leader_id = l.id
@@ -1072,7 +1074,7 @@ async def camp_registration_students(student_id: int):
                          i.amount AS amount_paid,
                          CONCAT(p.first_name, ' ', p.last_name) AS parent_name,
                          e.description AS description,
-                         v.address AS venue_adress
+                         v.address AS venue_address
                     FROM CampRegistration cp
                     JOIN Invoice i ON cp.invoice_id = i.id
                     JOIN Student s ON s.id = i.student_id
