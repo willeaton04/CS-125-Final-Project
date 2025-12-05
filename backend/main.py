@@ -46,7 +46,6 @@ def get_mongo_conn():
 # graphql_app = GraphQLRouter(schema)
 # app.include_router(graphql_app, prefix="/graphql")
 
-
 # ======================
 #     REDIS ENDPOINTS
 # ======================
@@ -328,11 +327,6 @@ async def delete_student_event_reg(event_id: int):
         print("Error deleting Redis keys:", e)
         raise HTTPException(status_code=500, detail=str(e))
 
-
-
-# ======================
-#    MYSQL ENDPOINTS
-# ======================
 # ======================
 #    MYSQL ENDPOINTS
 # ======================
@@ -950,13 +944,14 @@ async def get_leader(leaderId: int):
                         s.end_time AS ShiftEndTime,
                         l.note AS note
                     FROM Leader l
-                    LEFT JOIN LeaderRole lr ON lr.leader_id = l.id
+                     LEFT JOIN LeaderRole lr ON lr.leader_id = l.id
                     LEFT JOIN Role r ON lr.role_id = r.id
                     LEFT JOIN LeaderShift ls ON ls.leader_id = l.id
                     LEFT JOIN Shift s ON s.id = ls.shift_id
                     LEFT JOIN SmallGroup sg ON sg.leader_id = l.id
-                    WHERE l.id = %s
-                ''', (leaderId,))
+                    WHERE l.id = %s;
+                ''')
+
             results = cursor.fetchone()
     except Exception as e:
         raise HTTPException(
@@ -1057,13 +1052,14 @@ async def get_events(eventId: int):
     return results
 
 
-
 @app.put('/event/{event_id}')
 async def update_event(event_id: int, payload: dict):
     description = payload.get('description')
     start_time = payload.get('start_time')
     end_time = payload.get('end_time')
 
+@app.get('/camp/{campId}')
+async def get_camp(campId: int):
     try:
         conn = get_mysql_conn()
         with conn.cursor() as cursor:
@@ -1140,6 +1136,13 @@ async def update_camp(camp_id: int, payload: dict):
     EndTime = payload.get('EndTime')
     description = payload.get('description')
 
+
+@app.get('/venue/{venueId}')
+
+async def get_events(venueId: int):
+    conn = get_mysql_conn()
+
+async def get_venue(venueId: int):
     try:
         conn = get_mysql_conn()
         with conn.cursor() as cursor:
@@ -1184,7 +1187,11 @@ async def get_venue(venueId: int):
                 '''
                     SELECT 
                         v.address as VenueAdress,
+<<<<<<< HEAD
                         v.description AS descriptionVenue,
+=======
+                        v.description AS description,
+>>>>>>> f6b31d0 (Added delete+update endpoints)
                         e.description AS description
                     FROM Venue v
                     JOIN Event e ON e.venue_id = v.id
@@ -1261,8 +1268,12 @@ async def student_camp_registration(campId: int):
                         c.id AS campId,
                         i.amount AS AmountPaid,
                         e.description AS description,
+
                         v.address AS VenueAddress,
                         v.description AS descriptionVenue
+
+                        v.address AS VenueAdress,
+                        v.description AS description
                     FROM CampRegistration cp
                     JOIN Camp c ON cp.camp_id = c.id 
                     JOIN Event e ON c.id = e.id
@@ -1339,15 +1350,18 @@ async def leader_small_group(leaderId: int):
             cursor.execute(
     '''
     SELECT  
-        sg.name AS small_group_name,
-        sg.meeting_time AS meeting_time,
-        CONCAT(s.first_name, ' ', s.last_name) AS student_name
+      CONCAT(l.first_name, ' ', l.last_name) AS leader_name, 
+    sg.name AS small_group_name,
+    sg.meeting_time AS MeetingTime,
+    CONCAT(s.first_name, ' ', s.last_name) AS student_name
     FROM Student s
         JOIN SmallGroup sg ON sg.id = s.small_group_id
         JOIN Leader l ON l.id = sg.leader_id
-    WHERE l.id = %s;
-    ''', (leaderId,))
-            results = cursor.fetchall()
+    WHERE l.id = %s
+    GROUP BY s.id;
+   ''', (leaderId,))
+            results = cursor.fetchone()
+
     except Exception as e:
         raise HTTPException(
             status_code=500,
@@ -1444,6 +1458,15 @@ async def update_event_student_attendance(eventId: int, payload: dict):
     eventId = payload.get('campId')
 
 
+
+@app.get('/campregistration/student/{student_id}')
+
+async def campregistration_students(student_id: int):
+
+    conn = get_mysql_conn()
+
+async def camp_registration_students(student_id: int):
+
     try:
         conn = get_mysql_conn()
         with conn.cursor() as cursor:
@@ -1490,11 +1513,18 @@ async def camp_registration_students(student_id: int):
                     SELECT
                          CONCAT(s.first_name, ' ', s.last_name) AS student_name,
                          c.id AS campId,
+
                          cp.timestamp AS registered_time,
                          i.amount AS amount_paid,
                          CONCAT(p.first_name, ' ', p.last_name) AS parent_name,
                          e.description AS description,
                          v.address AS venue_address
+
+                         cp.timestamp AS RegisteredTime,
+                         i.amount AS AmountPaid,
+                         CONCAT(p.first_name, ' ', p.last_name) AS parent_name,
+                         e.description AS description,
+                         v.address AS VenueAdress
                     FROM CampRegistration cp
                     JOIN Invoice i ON cp.invoice_id = i.id
                     JOIN Student s ON s.id = i.student_id
