@@ -19,7 +19,7 @@ load_dotenv()
 def get_mysql_conn():
     return pymysql.connect(
         host=os.getenv('MYSQL_HOST'),
-        port=3307,
+        port=3306,
         user=os.getenv('MYSQL_USER'),
         password=os.getenv('MYSQL_PASSWORD'),
         database=os.getenv('MYSQL_DATABASE'),
@@ -46,6 +46,296 @@ def get_mongo_conn():
 # graphql_app = GraphQLRouter(schema)
 # app.include_router(graphql_app, prefix="/graphql")
 
+
+# ======================
+#     REDIS ENDPOINTS
+# ======================
+
+@app.post('/redis/event/registration/{event_id}')
+async def load_student_event_reg(event_id: int):
+    try:
+        redis_conn = get_redis_conn()
+        mysql_conn = get_mysql_conn()
+
+        if redis_conn.exists(f"event:{event_id}:students") == 1:
+            return {
+                "event_id": event_id,
+                'message': 'Data already exists'
+            }
+
+        with mysql_conn.cursor() as cursor:
+            cursor.execute('USE YouthGroup;')
+            cursor.execute(
+                '''
+                SELECT e.id AS event_id,
+                       e.venue_id,
+                       e.start_time,
+                       e.end_time,
+                       e.description,
+                       sa.student_id,
+                       sa.timestamp,
+                       s.note,
+                       s.first_name,
+                       s.last_name,
+                       s.email,
+                       s.phone_number,
+                       s.parent_id,
+                       s.small_group_id
+                FROM Event e
+                         JOIN StudentAttendance sa ON e.id = sa.event_id
+                         JOIN Student s ON s.id = sa.student_id
+                WHERE e.id = %s
+                ''',
+                (event_id,)
+            )
+            results = cursor.fetchall()
+
+        # ---------------------------------------------------------
+        # REDIS: FORMAT + STORE
+        # ---------------------------------------------------------
+
+        # Clear previous data for this event (optional but common)
+        # redis_conn.delete(f"event:{event_id}:students")
+
+        for row in results:
+            student_id = row["student_id"]
+
+            key = f"event:{event_id}:student:{student_id}"
+
+            redis_data = {
+                "event_id": row["event_id"],
+                "venue_id": row["venue_id"],
+                "start_time": str(row["start_time"]),
+                "end_time": str(row["end_time"]),
+                "description": row["description"],
+
+                "student_id": student_id,
+                "first_name": row["first_name"],
+                "last_name": row["last_name"],
+                "email": row["email"],
+                "phone_number": row["phone_number"],
+                "parent_id": row["parent_id"],
+                "small_group_id": row["small_group_id"],
+
+                "timestamp": str(row["timestamp"]),
+                "note": row["note"] if row["note"] else "",
+            }
+
+            # Save hash into Redis
+            redis_conn.hset(key, mapping=redis_data)
+            redis_conn.expire(key, 86400)
+
+            # Optional: Keep a list/set of all student keys
+            redis_conn.sadd(f"event:{event_id}:students", key)
+            redis_conn.expire(f"event:{event_id}:students", 86400)
+
+        return {"message": "Event registration data loaded into Redis", "count": len(results), "success": True}
+
+    except Exception as e:
+        return HTTPException (
+            status_code=500,
+            detail=f"Failed to load data into redis {str(e)}"
+        )
+    finally:
+        redis_conn.close()
+        mysql_conn.close()
+
+
+@app.get("/redis/event/registration/{event_id}")
+async def get_student_event_reg(event_id: int):
+    try:
+        redis_conn = get_redis_conn()
+
+        # Get all student keys for the event
+        student_keys = redis_conn.smembers(f"event:{event_id}:students")
+
+        if not student_keys:
+            return {
+                "event_id": event_id,
+                "registrations": [], # for frontend to decipher
+                "message": "No event registration data found in Redis"
+            }
+
+        registrations = []
+
+        for key in student_keys:
+            # Redis returns bytes → decode to string
+            key = key.decode() if isinstance(key, bytes) else key
+
+            raw_data = redis_conn.hgetall(key)
+
+            # Also convert bytes to strings for each field
+            formatted_data = {
+                k.decode() if isinstance(k, bytes) else k:
+                v.decode() if isinstance(v, bytes) else v
+                for k, v in raw_data.items()
+            }
+
+            # Convert numeric strings to ints where appropriate
+            for numeric_field in ["event_id", "venue_id", "student_id", "parent_id", "small_group_id"]:
+                if numeric_field in formatted_data and formatted_data[numeric_field].isdigit():
+                    formatted_data[numeric_field] = int(formatted_data[numeric_field])
+
+            registrations.append(formatted_data)
+
+        return {
+            "event_id": event_id,
+            "count": len(registrations),
+            "registrations": registrations,
+            "sucsess": True
+        }
+
+    except Exception as e:
+        print("Redis fetch error:", e)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.put("/redis/event/registration/{event_id}")
+async def update_student_event_reg(event_id: int):
+    '''
+        This method refreshes redis event registration
+        :param event_id:
+        :return: sql data
+    '''
+    try:
+        redis_conn = get_redis_conn()
+        mysql_conn = get_mysql_conn()
+
+        # --------------------------------------
+        # 1. Fetch the latest MySQL data
+        # --------------------------------------
+        with mysql_conn.cursor() as cursor:
+            cursor.execute("USE YouthGroup;")
+            cursor.execute(
+                """
+                SELECT 
+                    e.id AS event_id,
+                    e.venue_id,
+                    e.start_time,
+                    e.end_time,
+                    e.description,
+                    sa.student_id,
+                    sa.timestamp,
+                    s.note,
+                    s.first_name,
+                    s.last_name,
+                    s.email,
+                    s.phone_number,
+                    s.parent_id,
+                    s.small_group_id
+                FROM Event e
+                JOIN StudentAttendance sa ON e.id = sa.event_id
+                JOIN Student s ON s.id = sa.student_id
+                WHERE e.id = %s;
+                """,
+                (event_id,)
+            )
+            results = cursor.fetchall()
+
+        # --------------------------------------
+        # 2. DELETE OLD REDIS DATA FOR THIS EVENT
+        # --------------------------------------
+        old_keys = redis_conn.smembers(f"event:{event_id}:students")
+
+        # Delete student hashes
+        if old_keys:
+            redis_conn.delete(*old_keys)
+
+        # Delete the student set
+        redis_conn.delete(f"event:{event_id}:students")
+
+        # --------------------------------------
+        # 3. REBUILD REDIS KEYS WITH NEW DATA
+        # --------------------------------------
+        for row in results:
+            student_id = row["student_id"]
+            key = f"event:{event_id}:student:{student_id}"
+
+            redis_data = {
+                "event_id": row["event_id"],
+                "venue_id": row["venue_id"],
+                "start_time": str(row["start_time"]),
+                "end_time": str(row["end_time"]),
+                "description": row["description"],
+                "student_id": student_id,
+                "first_name": row["first_name"],
+                "last_name": row["last_name"],
+                "email": row["email"],
+                "phone_number": row["phone_number"],
+                "parent_id": row["parent_id"],
+                "small_group_id": row["small_group_id"],
+                "timestamp": str(row["timestamp"]),
+                "note": row["note"] or "",
+            }
+
+            # Insert updated hash
+            redis_conn.hset(key, mapping=redis_data)
+            redis_conn.expire(key, 86400)  # TTL 24 hours
+
+            # Add to event student set
+            redis_conn.sadd(f"event:{event_id}:students", key)
+            redis_conn.expire(f"event:{event_id}:students", 86400)
+        return {
+            "message": "Event registration Redis cache updated",
+            "event_id": event_id,
+            "count": len(results),
+            "sucsess": True
+        }
+
+    except Exception as e:
+        print("Error updating Redis:", e)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/redis/event/registration/{event_id}")
+async def delete_student_event_reg(event_id: int):
+    try:
+        redis_conn = get_redis_conn()
+
+        # --------------------------------------
+        # 1. Find all student hash keys
+        # --------------------------------------
+        student_keys = redis_conn.smembers(f"event:{event_id}:students")
+
+        deleted_count = 0
+
+        # --------------------------------------
+        # 2. Delete each student hash
+        # --------------------------------------
+        if student_keys:
+            # Redis returns bytes → convert
+            decoded_keys = [
+                k.decode() if isinstance(k, bytes) else k
+                for k in student_keys
+            ]
+
+            # Delete all hashes at once
+            redis_conn.delete(*decoded_keys)
+            deleted_count += len(decoded_keys)
+
+        # --------------------------------------
+        # 3. Delete the student set itself
+        # --------------------------------------
+        redis_conn.delete(f"event:{event_id}:students")
+
+        return {
+            "message": f"Redis event {event_id} data deleted",
+            "event_id": event_id,
+            "deleted_records": deleted_count,
+            "sucsess": True
+        }
+
+    except Exception as e:
+        print("Error deleting Redis keys:", e)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+
+# ======================
+#    MYSQL ENDPOINTS
+# ======================
+# ======================
+#    MYSQL ENDPOINTS
+# ======================
 @app.get('/')
 async def root():
     return {'message': 'Service is running'}
@@ -349,7 +639,6 @@ async def get_all_events():
             cursor.execute('USE YouthGroup;')
             cursor.execute(
 '''
-   -- Adding venues 
     SELECT 
         e.start_time AS StartTime,
         e.end_time AS EndTime,
@@ -483,7 +772,7 @@ async def get_student(student_id: int):
         with conn.cursor() as cursor:
             cursor.execute('USE YouthGroup;')
             cursor.execute(
-                f"""
+                """
             SELECT 
                 CONCAT(p.first_name, ' ', p.last_name) AS parent_name,
                 CONCAT(s.first_name, ' ', s.last_name) AS student_name,
@@ -496,8 +785,8 @@ async def get_student(student_id: int):
             JOIN Parent p ON s.parent_id = p.id
             JOIN SmallGroup sg ON sg.id = s.small_group_id
             JOIN Leader l ON sg.leader_id = l.id
-            WHERE s.id = {student_id}
-                """)
+            WHERE s.id = %s
+                """, (student_id,))
             results = cursor.fetchone()
     except Exception as e:
         raise HTTPException(
@@ -510,7 +799,7 @@ async def get_student(student_id: int):
     if not results:
         raise HTTPException(
             status_code=404,
-            detail="Student with ID {studentId} not found"
+            detail=f"Student with ID {student_id} not found"
         )
 
     return results
@@ -518,8 +807,8 @@ async def get_student(student_id: int):
 
 @app.get('/leader/{leaderId}')
 async def get_leader(leaderId: int):
-    conn = get_mysql_conn()
     try:
+        conn = get_mysql_conn()
         with conn.cursor() as cursor:
             cursor.execute('USE YouthGroup;')
             cursor.execute(
@@ -527,24 +816,23 @@ async def get_leader(leaderId: int):
                     SELECT 
                         CONCAT(l.first_name, ' ', l.last_name) AS leader_name,
                         sg.name AS small_group_name,
-                        l.datejoined AS datejoined,
-                        CONCAT(l.first_name, ' ', l.last_name) AS small_group_leader_name,
+                        l.date_joined AS datejoined,
                         l.email AS email,
                         l.phone_number AS phone_number,
                         l.salary AS salary,
                         r.title AS title,
-                        r.desc AS description,
-                        s.startTime AS ShiftStartTime,
-                        s.endTime AS ShiftEndTime,
+                        r.description AS description,
+                        s.start_time AS ShiftStartTime,
+                        s.end_time AS ShiftEndTime,
                         l.note AS note
                     FROM Leader l
-                    JOIN LeaderRole lr ON lr.leader_id = l.id
-                    JOIN role l ON lr.roleId = r.id
-                    JOIN leaderShift ls ON ls.leader_id = l.id
-                    JOIN Shift s ON s.id = ls.shift_id
-                    JOIN SmallGroup sg ON sg.leader_id = l.id
-                    JOIN LeaderShift ls ON ls.leader_id = l.id;
-                ''')
+                    LEFT JOIN LeaderRole lr ON lr.leader_id = l.id
+                    LEFT JOIN Role r ON lr.role_id = r.id
+                    LEFT JOIN LeaderShift ls ON ls.leader_id = l.id
+                    LEFT JOIN Shift s ON s.id = ls.shift_id
+                    LEFT JOIN SmallGroup sg ON sg.leader_id = l.id
+                    WHERE l.id = %s
+                ''', (leaderId,))
             results = cursor.fetchone()
     except Exception as e:
         raise HTTPException(
@@ -557,29 +845,30 @@ async def get_leader(leaderId: int):
     if not results:
         raise HTTPException(
             status_code=404,
-            detail="Leader with ID {leaderId} not found"
+            detail=f"Leader with ID {leaderId} not found"
         )
 
     return results
 
 @app.get('/event/{eventId}')
 async def get_events(eventId: int):
-    conn = get_mysql_conn()
     try:
+        conn = get_mysql_conn()
         with conn.cursor() as cursor:
             cursor.execute('USE YouthGroup;')
             cursor.execute(
                 '''
                     SELECT 
-                        e.startTime AS StartTime,
-                        e.endTime AS EndTime,
-                        sa.studentId AS studentId,
-                        v.adress as VenueAdress,
+                        e.start_time AS StartTime,
+                        e.end_time AS EndTime,
+                        sa.student_id AS studentId,
+                        v.address as VenueAdress,
                         e.description AS description
                     FROM Event e
-                    JOIN venue v ON e.venue_id = v.id
-                    JOIN StudentAttendance sa ON sa.event_id = e.id;
-                ''')
+                    JOIN Venue v ON e.venue_id = v.id
+                    JOIN StudentAttendance sa ON sa.event_id = e.id
+                    WHERE e.id = %s;
+                ''', (eventId,))
             results = cursor.fetchall()
     except Exception as e:
         raise HTTPException(
@@ -592,27 +881,28 @@ async def get_events(eventId: int):
     if not results:
         raise HTTPException(
             status_code=404,
-            detail="No events with {eventId} found"
+            detail=f"No events with {eventId} found"
         )
 
     return results
 
 @app.get('/camp/{campId}')
-async def get_events(campId: int):
-    conn = get_mysql_conn()
+async def get_camp(campId: int):
     try:
+        conn = get_mysql_conn()
         with conn.cursor() as cursor:
             cursor.execute('USE YouthGroup;')
             cursor.execute(
                 '''
                     SELECT 
                         c.id as CampNumber,
-                        e.startTime AS StartTime,
-                        e.endTime AS EndTime,
-                        e.desc as description
+                        e.start_time AS StartTime,
+                        e.end_time AS EndTime,
+                        e.description as description
                     FROM Camp c
-                    JOIN event e ON e.id = c.id;
-                ''')
+                    JOIN Event e ON e.id = c.id
+                    WHERE c.id = %s;
+                ''', (campId,))
             results = cursor.fetchall()
     except Exception as e:
         raise HTTPException(
@@ -631,20 +921,21 @@ async def get_events(campId: int):
     return results
 
 @app.get('/venue/{venueId}')
-async def get_events(venueId: int):
-    conn = get_mysql_conn()
+async def get_venue(venueId: int):
     try:
+        conn = get_mysql_conn()
         with conn.cursor() as cursor:
             cursor.execute('USE YouthGroup;')
             cursor.execute(
                 '''
                     SELECT 
-                        v.adress as VenueAdress,
+                        v.address as VenueAdress,
                         v.description AS description,
-                        e.desc AS description
+                        e.description AS description
                     FROM Venue v
-                    JOIN event e ON e.venue_id = v.id;
-                ''')
+                    JOIN Event e ON e.venue_id = v.id
+                    WHERE v.id = %s;
+                ''', (venueId,))
             results = cursor.fetchall()
     except Exception as e:
         raise HTTPException(
@@ -665,8 +956,8 @@ async def get_events(venueId: int):
 
 @app.get('/camp/registration/{campId}')
 async def student_camp_registration(campId: int):
-    conn = get_mysql_conn()
     try:
+        conn = get_mysql_conn()
         with conn.cursor() as cursor:
             cursor.execute('USE YouthGroup;')
             cursor.execute(
@@ -675,14 +966,15 @@ async def student_camp_registration(campId: int):
                         c.id AS campId,
                         i.amount AS AmountPaid,
                         e.description AS description,
-                        v.adress AS VenueAdress,
-                        v.desc AS description
+                        v.address AS VenueAdress,
+                        v.description AS description
                     FROM CampRegistration cp
-                    JOIN camp c ON cp.camp_id = c.id 
-                    JOIN event e ON c.id = e.id
-                    JOIN venue v ON e.venue_id = v.id 
-                    JOIN Invoice i ON cp.invoice_id = i.id;
-                ''')
+                    JOIN Camp c ON cp.camp_id = c.id 
+                    JOIN Event e ON c.id = e.id
+                    JOIN Venue v ON e.venue_id = v.id 
+                    JOIN Invoice i ON cp.invoice_id = i.id
+                    WHERE c.id = %s;
+                ''', (campId,))
             results = cursor.fetchall()
     except Exception as e:
         raise HTTPException(
@@ -702,23 +994,22 @@ async def student_camp_registration(campId: int):
 
 @app.get('/leader/smallgroup/{leaderId}')
 async def leader_small_group(leaderId: int):
-    conn = get_mysql_conn()
     try:
+        conn = get_mysql_conn()
         with conn.cursor() as cursor:
             cursor.execute('USE YouthGroup;')
             cursor.execute(
     '''
     SELECT  
-    CONCAT(l.first_name, ' ', l.last_name) AS leader_name, 
-    sg.name AS small_group_name,
-    sg.meetingTime AS MeetingTime,
-    CONCAT(s.first_name, ' ', s.last_name) AS student_name
+        sg.name AS small_group_name,
+        sg.meeting_time AS meeting_time,
+        CONCAT(s.first_name, ' ', s.last_name) AS student_name
     FROM Student s
-        JOIN SmallGroup sg ON sg.ID = s.smallGroupId
-        JOIN Leader l ON l.leaderId = sg.leaderId
-    WHERE l.leaderId = ${leaderId}
-   ''')
-            results = cursor.fetchone()
+        JOIN SmallGroup sg ON sg.id = s.small_group_id
+        JOIN Leader l ON l.id = sg.leader_id
+    WHERE l.id = %s;
+    ''', (leaderId,))
+            results = cursor.fetchall()
     except Exception as e:
         raise HTTPException(
             status_code=500,
@@ -738,19 +1029,18 @@ async def leader_small_group(leaderId: int):
 
 @app.get('/event/registration/{eventId}')
 async def event_student_attendance(eventId: int):
-
-    conn = get_mysql_conn()
     try:
+        conn = get_mysql_conn()
         with conn.cursor() as cursor:
             cursor.execute('USE YouthGroup;')
             cursor.execute(
     '''
     SELECT *
     FROM Event e
-        JOIN StudentAttendance sa ON e.ID = sa.eventId
-        JOIN Student s ON s.ID = sa.studentId
-    WHERE e.ID = ${eventId}
-    ''')
+        JOIN StudentAttendance sa ON e.id = sa.event_id
+        JOIN Student s ON s.id = sa.student_id
+    WHERE e.id = %s
+    ''', (eventId,))
             results = cursor.fetchall()
     except Exception as e:
         raise HTTPException(
@@ -769,10 +1059,9 @@ async def event_student_attendance(eventId: int):
     return results
 
 @app.get('/campregistration/student/{student_id}')
-async def campregistration_students(student_id: int):
-
-    conn = get_mysql_conn()
+async def camp_registration_students(student_id: int):
     try:
+        conn = get_mysql_conn()
         with conn.cursor() as cursor:
             cursor.execute('USE YouthGroup;')
             cursor.execute(
@@ -780,20 +1069,21 @@ async def campregistration_students(student_id: int):
                 '''
                     SELECT
                          CONCAT(s.first_name, ' ', s.last_name) AS student_name,
-                        c.id AS campId,
-                        cp.timestamp AS RegisteredTime,
-                        i.amount AS AmountPaid,
+                         c.id AS campId,
+                         cp.timestamp AS registered_time,
+                         i.amount AS amount_paid,
                          CONCAT(p.first_name, ' ', p.last_name) AS parent_name,
                          e.description AS description,
-                         v.adress AS VenueAdress
+                         v.address AS venue_address
                     FROM CampRegistration cp
                     JOIN Invoice i ON cp.invoice_id = i.id
-                    JOIN student s ON s.id = i.student_id
-                    JOIN parent p ON s.parent_id = p.id
-                    JOIN camp c ON cp.camp_id = c.id 
-                    JOIN event e ON c.id = e.id
-                    JOIN venue v ON e.venue_id = v.id;
-                ''')
+                    JOIN Student s ON s.id = i.student_id
+                    JOIN Parent p ON s.parent_id = p.id
+                    JOIN Camp c ON cp.camp_id = c.id 
+                    JOIN Event e ON c.id = e.id
+                    JOIN Venue v ON e.venue_id = v.id
+                    WHERE s.id = %s;
+                ''', (student_id,))
             results = cursor.fetchall()
     except Exception as e:
         raise HTTPException(
