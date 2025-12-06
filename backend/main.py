@@ -1,6 +1,7 @@
 '''
 @author Will Eaton, Nice Hirwa
 
+
 builds entrypoint for graphql using FastAPI
 '''
 from dotenv import load_dotenv
@@ -16,6 +17,10 @@ from app_graphql.schema import schema
 app = FastAPI()
 load_dotenv()
 
+# Creates a global mongo so that it's not created everytime
+_mongo_client = None
+
+
 def get_mysql_conn():
     return pymysql.connect(
         host=os.getenv('MYSQL_HOST'),
@@ -26,21 +31,56 @@ def get_mysql_conn():
         cursorclass=pymysql.cursors.DictCursor
     )
 
+
 def get_redis_conn():
     return redis.Redis(
-        host= os.getenv('REDIS_ENDPOINT'),
+        host=os.getenv('REDIS_ENDPOINT'),
         port=11044,
         decode_responses=True,
-        username= os.getenv('REDIS_USERNAME'),
-        password= os.getenv('REDIS_PASSWORD')
+        username=os.getenv('REDIS_USERNAME'),
+        password=os.getenv('REDIS_PASSWORD')
     )
 
+
 def get_mongo_conn():
-    client = MongoClient(
-        f"mongodb+srv://{os.getenv('MONGO_USER')}:{os.getenv('MONGO_PASSWORD')}@cs-125.3xkvzsq.mongodb.net/?appName=CS-125",
-        server_api=ServerApi('1')
-    )
-    return client
+    global _mongo_client
+    if _mongo_client is None:
+        _mongo_client = MongoClient(
+            f"mongodb+srv://{os.getenv('MONGO_USER')}:{os.getenv('MONGO_PASSWORD')}@cs-125.3xkvzsq.mongodb.net/?appName=CS-125",
+            server_api=ServerApi('1')
+        )
+    return _mongo_client
+
+
+def mongo_event_custom_values():
+    client = get_mongo_conn()
+    db = client['YouthGroup']
+    return db['event_custom_values']
+
+
+def mongo_camp_custom_values():
+    client = get_mongo_conn()
+    db = client['YouthGroup']
+    return db['camp_custom_values']
+
+
+# Helps in sorting out and finding it instantly
+def setup_mongodb_indexes():
+    """Setup MongoDB indexes for better performance. Run once during initialization."""
+    try:
+        mongo_event_custom_values().create_index('event_id', unique=True)
+        mongo_camp_custom_values().create_index('camp_id', unique=True)
+        print("MongoDB indexes created successfully")
+    except Exception as e:
+        print(f"MongoDB index creation warning: {e}")
+
+
+# This decorator tells FastAPI: "Run this function ONE
+# TIME when the application starts up, before handling any requests."
+@app.on_event("startup")
+async def startup_event():
+    setup_mongodb_indexes()
+
 
 # We'll figure out how to plug in Graphql later :)
 # graphql_app = GraphQLRouter(schema)
@@ -50,6 +90,7 @@ def get_mongo_conn():
 # ======================
 #     REDIS ENDPOINTS
 # ======================
+
 
 @app.post('/redis/event/registration/{event_id}')
 async def load_student_event_reg(event_id: int):
@@ -131,8 +172,9 @@ async def load_student_event_reg(event_id: int):
 
         return {"message": "Event registration data loaded into Redis", "count": len(results), "success": True}
 
+
     except Exception as e:
-        return HTTPException (
+        return HTTPException(
             status_code=500,
             detail=f"Failed to load data into redis {str(e)}"
         )
@@ -152,7 +194,7 @@ async def get_student_event_reg(event_id: int):
         if not student_keys:
             return {
                 "event_id": event_id,
-                "registrations": [], # for frontend to decipher
+                "registrations": [],  # for frontend to decipher
                 "message": "No event registration data found in Redis"
             }
 
@@ -167,7 +209,7 @@ async def get_student_event_reg(event_id: int):
             # Also convert bytes to strings for each field
             formatted_data = {
                 k.decode() if isinstance(k, bytes) else k:
-                v.decode() if isinstance(v, bytes) else v
+                    v.decode() if isinstance(v, bytes) else v
                 for k, v in raw_data.items()
             }
 
@@ -184,6 +226,7 @@ async def get_student_event_reg(event_id: int):
             "registrations": registrations,
             "sucsess": True
         }
+
 
     except Exception as e:
         print("Redis fetch error:", e)
@@ -208,7 +251,7 @@ async def update_student_event_reg(event_id: int):
             cursor.execute("USE YouthGroup;")
             cursor.execute(
                 """
-                SELECT 
+                SELECT
                     e.id AS event_id,
                     e.venue_id,
                     e.start_time,
@@ -282,9 +325,11 @@ async def update_student_event_reg(event_id: int):
             "sucsess": True
         }
 
+
     except Exception as e:
         print("Error updating Redis:", e)
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @app.delete("/redis/event/registration/{event_id}")
 async def delete_student_event_reg(event_id: int):
@@ -324,15 +369,12 @@ async def delete_student_event_reg(event_id: int):
             "sucsess": True
         }
 
+
     except Exception as e:
         print("Error deleting Redis keys:", e)
         raise HTTPException(status_code=500, detail=str(e))
 
 
-
-# ======================
-#    MYSQL ENDPOINTS
-# ======================
 # ======================
 #    MYSQL ENDPOINTS
 # ======================
@@ -340,7 +382,8 @@ async def delete_student_event_reg(event_id: int):
 async def root():
     return {'message': 'Service is running'}
 
-@app.get('/student')
+
+@app.get('/student/')
 async def get_all_students():
     try:
         conn = get_mysql_conn()
@@ -349,8 +392,8 @@ async def get_all_students():
             cursor.execute('USE YouthGroup;')
             cursor.execute(
 
-'''
-    SELECT 
+                '''
+    SELECT
         CONCAT(p.first_name, ' ', p.last_name) AS parent_name,
         CONCAT(s.first_name, ' ', s.last_name) AS student_name,
         sg.name AS small_group_name,
@@ -362,7 +405,7 @@ async def get_all_students():
     JOIN Parent p ON s.parent_id = p.id
     JOIN SmallGroup sg ON sg.id = s.small_group_id
     JOIN Leader l ON sg.leader_id = l.id;
-''')
+ ''')
             results = cursor.fetchall()
     except Exception as e:
         raise HTTPException(
@@ -380,8 +423,9 @@ async def get_all_students():
 
     return results
 
+
 # We use payload because when the fast api sends in a request, it sends it in as a whole dictionary
-@app.put('/student')
+@app.put('/student/')
 async def update_student(student_id: int, payload: dict):
     email = payload.get('email')
     phone_number = payload.get('phone_number')
@@ -396,8 +440,9 @@ async def update_student(student_id: int, payload: dict):
         with conn.cursor() as cursor:
             cursor.execute('USE YouthGroup;')
             cursor.execute(''' UPDATE Student
-                SET email = %s, phone_number = %s, note = %s, student_name = %s, parent_name = %s, small_group_name = %s, small_group_leader_name = %s
-                WHERE id = %s;''', (email, phone_number, note, student_id, student_name, parent_name, small_group_name, small_group_leader_name))
+               SET email = %s, phone_number = %s, note = %s, student_name = %s, parent_name = %s, small_group_name = %s, small_group_leader_name = %s
+               WHERE id = %s;''', (email, phone_number, note, student_id, student_name, parent_name, small_group_name,
+                                   small_group_leader_name))
             conn.commit()
             if cursor.rowcount == 0:
                 raise HTTPException(404, 'Student not found')
@@ -407,7 +452,8 @@ async def update_student(student_id: int, payload: dict):
         conn.close()
     return {'message': 'Student updated successfully'}
 
-@app.delete('/student')
+
+@app.delete('/student/')
 async def delete_student(student_id: int):
     try:
         conn = get_mysql_conn()
@@ -425,7 +471,7 @@ async def delete_student(student_id: int):
     return {"message": "Student deleted successfully"}
 
 
-@app.get('/parent')
+@app.get('/parent/')
 async def get_all_parents():
     try:
         conn = get_mysql_conn()
@@ -434,7 +480,7 @@ async def get_all_parents():
             cursor.execute('USE YouthGroup;')
             cursor.execute(
                 '''
-                SELECT 
+                SELECT
                     p.id AS parent_id,
                     CONCAT(p.first_name, ' ', p.last_name) AS parent_name,
                     p.email AS email,
@@ -447,6 +493,7 @@ async def get_all_parents():
                 '''
             )
             rows = cursor.fetchall()
+
 
     except Exception as e:
         raise HTTPException(
@@ -479,7 +526,8 @@ async def get_all_parents():
 
     return list(parents.values())
 
-@app.put('/parent/{parent_id}')
+
+@app.put('/parent/')
 async def update_parent(parent_id: int, payload: dict):
     email = payload.get('email')
     phone_number = payload.get('phone_number')
@@ -492,8 +540,8 @@ async def update_parent(parent_id: int, payload: dict):
         with conn.cursor() as cursor:
             cursor.execute('USE YouthGroup;')
             cursor.execute(''' UPDATE Parent
-                SET email = %s, phone_number = %s, note = %s, student_name = %s, parent_name = %s
-                WHERE id = %s;''', (email, phone_number, note, parent_id,student_name, parent_name))
+               SET email = %s, phone_number = %s, note = %s, student_name = %s, parent_name = %s
+               WHERE id = %s;''', (email, phone_number, note, parent_id, student_name, parent_name))
             conn.commit()
             if cursor.rowcount == 0:
                 raise HTTPException(404, 'parent not found')
@@ -503,7 +551,8 @@ async def update_parent(parent_id: int, payload: dict):
         conn.close()
     return {'message': 'parent updated successfully'}
 
-@app.delete('/parent/{parent_id}')
+
+@app.delete('/parent/')
 async def delete_parent(parent_id: int):
     try:
         conn = get_mysql_conn()
@@ -523,7 +572,8 @@ async def delete_parent(parent_id: int):
 
 import pymysql.cursors
 
-@app.get('/leader')
+
+@app.get('/leader/')
 async def get_all_leaders():
     try:
         conn = get_mysql_conn()
@@ -531,26 +581,28 @@ async def get_all_leaders():
         with conn.cursor(pymysql.cursors.DictCursor) as cursor:
             cursor.execute('USE YouthGroup;')
             cursor.execute('''
-                SELECT 
-                    l.id AS leader_id,
-                    CONCAT(l.first_name, ' ', l.last_name) AS leader_name,
-                    sg.name AS small_group_name,
-                    l.date_joined AS datejoined,
-                    l.email AS email,
-                    l.phone_number AS phone_number,
-                    l.salary AS salary,
-                    l.note AS note,
-                    s.start_time AS shift_start,
-                    s.end_time AS shift_end
-                FROM Leader l
-                LEFT JOIN SmallGroup sg ON sg.leader_id = l.id
-                LEFT JOIN LeaderShift ls ON ls.leader_id = l.id
-                LEFT JOIN Shift s ON ls.shift_id = s.id;
-            ''')
+               SELECT
+                   l.id AS leader_id,
+                   CONCAT(l.first_name, ' ', l.last_name) AS leader_name,
+                   sg.name AS small_group_name,
+                   l.date_joined AS datejoined,
+                   l.email AS email,
+                   l.phone_number AS phone_number,
+                   l.salary AS salary,
+                   l.note AS note,
+                   s.start_time AS shift_start,
+                   s.end_time AS shift_end
+               FROM Leader l
+               LEFT JOIN SmallGroup sg ON sg.leader_id = l.id
+               LEFT JOIN LeaderShift ls ON ls.leader_id = l.id
+               LEFT JOIN Shift s ON ls.shift_id = s.id;
+           ''')
             rows = cursor.fetchall()
+
 
     except Exception as e:
         raise HTTPException(500, f"Database query failed: {str(e)}")
+
 
     finally:
         conn.close()
@@ -584,7 +636,8 @@ async def get_all_leaders():
 
     return list(leaders.values())
 
-@app.put('/leader')
+
+@app.put('/leader/')
 async def update_leader(leader_id: int, payload: dict):
     email = payload.get('email')
     phone_number = payload.get('phone_number')
@@ -600,8 +653,9 @@ async def update_leader(leader_id: int, payload: dict):
         with conn.cursor() as cursor:
             cursor.execute('USE YouthGroup;')
             cursor.execute(''' UPDATE Leader
-                SET email = %s, phone_number = %s, note = %s, small_group_name = %s, date_joined = %s, salary=%s, start_time=%s, end_time=%s
-                WHERE id = %s;''', (email, phone_number, note, small_group_name, datejoined, salary, start_time, end_time, leader_id))
+               SET email = %s, phone_number = %s, note = %s, small_group_name = %s, date_joined = %s, salary=%s, start_time=%s, end_time=%s
+               WHERE id = %s;''', (
+                email, phone_number, note, small_group_name, datejoined, salary, start_time, end_time, leader_id))
             conn.commit()
             if cursor.rowcount == 0:
                 raise HTTPException(404, 'Leader not found')
@@ -611,7 +665,8 @@ async def update_leader(leader_id: int, payload: dict):
         conn.close()
     return {'message': 'Leader updated successfully'}
 
-@app.delete('/Leader')
+
+@app.delete('/leader/')
 async def delete_leader(leader_id: int):
     try:
         conn = get_mysql_conn()
@@ -629,23 +684,21 @@ async def delete_leader(leader_id: int):
     return {"message": "Leader deleted successfully"}
 
 
-
 @app.get('/event/')
 async def get_all_events():
     try:
         conn = get_mysql_conn()
-
         with conn.cursor() as cursor:
             cursor.execute('USE YouthGroup;')
-            cursor.execute(
-'''
-    SELECT 
-        e.start_time AS StartTime,
-        e.end_time AS EndTime,
-        e.description AS description
-    FROM Event e
-    JOIN Venue v ON e.venue_id = v.id
-    JOIN StudentAttendance sa ON sa.event_id = e.id;
+            cursor.execute('''
+   SELECT
+       e.id AS event_id,
+       e.start_time AS StartTime,
+       e.end_time AS EndTime,
+       e.description AS description
+   FROM Event e
+   JOIN Venue v ON e.venue_id = v.id
+   GROUP BY e.id;
 ''')
             results = cursor.fetchall()
     except Exception as e:
@@ -662,10 +715,19 @@ async def get_all_events():
             detail="No events found"
         )
 
+    # Add custom fields from MongoDB to each event
+    for event in results:
+        try:
+            custom_doc = mongo_event_custom_values().find_one({'event_id': event['event_id']})
+            event['custom_fields'] = custom_doc.get('custom_fields', {}) if custom_doc else {}
+        except Exception as e:
+            print(f"MongoDB fetch warning for event {event['event_id']}: {e}")
+            event['custom_fields'] = {}
+
     return results
 
 
-@app.put('/event')
+@app.put('/event/')
 async def update_event(event_id: int, payload: dict):
     description = payload.get('description')
     start_time = payload.get('start_time')
@@ -676,8 +738,8 @@ async def update_event(event_id: int, payload: dict):
         with conn.cursor() as cursor:
             cursor.execute('USE YouthGroup;')
             cursor.execute(''' UPDATE Leader
-                SET description = %s, start_time=%s, end_time=%s
-                WHERE id = %s;''', (description, start_time, end_time, event_id))
+               SET description = %s, start_time=%s, end_time=%s
+               WHERE id = %s;''', (description, start_time, end_time, event_id))
             conn.commit()
             if cursor.rowcount == 0:
                 raise HTTPException(404, 'Event not found')
@@ -687,7 +749,8 @@ async def update_event(event_id: int, payload: dict):
         conn.close()
     return {'message': 'Event updated successfully'}
 
-@app.delete('/Event')
+
+@app.delete('/event/')
 async def delete_event(event_id: int):
     try:
         conn = get_mysql_conn()
@@ -704,19 +767,177 @@ async def delete_event(event_id: int):
 
     return {"message": "Event deleted successfully"}
 
-@app.get('/camp')
-async def get_camps():
-    conn = get_mysql_conn()
+
+@app.get('/event/{eventId}')
+async def get_event(eventId: int):
     try:
+        conn = get_mysql_conn()
         with conn.cursor() as cursor:
             cursor.execute('USE YouthGroup;')
-            cursor.execute(
-                '''
-                    SELECT 
-                        c.id as CampNumber
-                    FROM Camp c
-                    JOIN event e ON e.id = c.id;
-                ''')
+            cursor.execute('''
+               SELECT
+                   e.id AS event_id,
+                   e.start_time AS StartTime,
+                   e.end_time AS EndTime,
+                   sa.student_id AS studentId,
+                   v.address as VenueAddress,
+                   e.description AS description
+               FROM Event e
+               JOIN Venue v ON e.venue_id = v.id
+               LEFT JOIN StudentAttendance sa ON sa.event_id = e.id
+               WHERE e.id = %s;
+           ''', (eventId,))
+            results = cursor.fetchall()
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Database query failed: {str(e)}"
+        )
+    finally:
+        conn.close()
+
+    if not results:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No events with {eventId} found"
+        )
+
+    # Adding custom fields from MongoDB
+    try:
+        custom_doc = mongo_event_custom_values().find_one({'event_id': eventId})
+        custom_fields = custom_doc.get('custom_fields', {}) if custom_doc else {}
+    except Exception as e:
+        print(f"MongoDB fetch warning: {e}")
+        custom_fields = {}
+
+    return {
+        'event_data': results,
+        'custom_fields': custom_fields
+    }
+
+
+@app.post('/event/')
+async def create_event(payload: dict):
+    venue_id = payload.get('venue_id')
+    start_time = payload.get('start_time')
+    end_time = payload.get('end_time')
+    description = payload.get('description')
+    custom_fields = payload.get('custom_fields', {})
+
+    if not all([venue_id, start_time, end_time]):
+        raise HTTPException(400, 'Missing required event fields')
+
+    event_id = None
+    try:
+        conn = get_mysql_conn()
+        with conn.cursor() as cursor:
+            cursor.execute('USE YouthGroup;')
+            cursor.execute("""
+               INSERT INTO Event (venue_id, start_time, end_time, description)
+               VALUES (%s, %s, %s, %s);
+           """, (venue_id, start_time, end_time, description))
+            conn.commit()
+            event_id = cursor.lastrowid
+    except Exception as e:
+        raise HTTPException(500, f"MySQL insert failed: {e}")
+    finally:
+        conn.close()
+
+    # Only saving to MongoDB if there are custom fields
+    if custom_fields and event_id:
+        try:
+            mongo_event_custom_values().insert_one({
+                'event_id': event_id,
+                'custom_fields': custom_fields,
+            })
+        except Exception as e:
+            print(f"MongoDB insert warning: {e}")
+            # Don't fail the entire request if MongoDB fails
+
+    return {
+        'message': 'Event created',
+        'event_id': event_id,
+        'custom_fields': custom_fields
+    }
+
+
+@app.put('/event/{event_id}')
+async def update_event(event_id: int, payload: dict):
+    description = payload.get('description')
+    start_time = payload.get('start_time')
+    end_time = payload.get('end_time')
+    custom_fields = payload.get('custom_fields')
+
+    try:
+        conn = get_mysql_conn()
+        with conn.cursor() as cursor:
+            cursor.execute('USE YouthGroup;')
+            cursor.execute('''
+               UPDATE Event
+               SET description = %s, start_time = %s, end_time = %s
+               WHERE id = %s;
+           ''', (description, start_time, end_time, event_id))
+            conn.commit()
+            if cursor.rowcount == 0:
+                raise HTTPException(404, 'Event not found')
+    except Exception as e:
+        raise HTTPException(500, f'Database query failed: {str(e)}')
+    finally:
+        conn.close()
+
+    # Update custom fields in MongoDB if provided
+    if custom_fields is not None:
+        try:
+            mongo_event_custom_values().update_one(
+                {'event_id': event_id},
+                {'$set': {'custom_fields': custom_fields}},
+                upsert=True
+            )
+        except Exception as e:
+            print(f"MongoDB update warning: {e}")
+
+    return {'message': 'Event updated successfully'}
+
+
+@app.delete('/event/{event_id}')
+async def delete_event(event_id: int):
+    try:
+        conn = get_mysql_conn()
+        with conn.cursor() as cursor:
+            cursor.execute('USE YouthGroup;')
+            cursor.execute('DELETE FROM Event WHERE id = %s;', (event_id,))
+            conn.commit()
+            if cursor.rowcount == 0:
+                raise HTTPException(404, "Event not found")
+    except Exception as e:
+        raise HTTPException(500, f"Delete failed: {e}")
+    finally:
+        conn.close()
+
+    # Delete associated MongoDB document
+    try:
+        mongo_event_custom_values().delete_one({'event_id': event_id})
+    except Exception as e:
+        print(f"MongoDB delete warning: {e}")
+
+    return {"message": "Event deleted successfully"}
+
+
+@app.get('/camp/')
+async def get_camps():
+    try:
+        conn = get_mysql_conn()
+        with conn.cursor() as cursor:
+            cursor.execute('USE YouthGroup;')
+            cursor.execute('''
+               SELECT
+                   c.id as camp_id,
+                   e.start_time AS start_time,
+                   e.end_time AS end_time,
+                   e.description AS description
+               FROM Camp c
+               JOIN Event e ON e.id = c.id;
+           ''')
             results = cursor.fetchall()
     except Exception as e:
         raise HTTPException(
@@ -732,19 +953,32 @@ async def get_camps():
             detail="No camps found"
         )
 
+    # Add custom fields from MongoDB to each camp
+    for camp in results:
+        try:
+            custom_doc = mongo_camp_custom_values().find_one({'camp_id': camp['camp_id']})
+            camp['custom_fields'] = custom_doc.get('custom_fields', {}) if custom_doc else {}
+        except Exception as e:
+            print(f"MongoDB fetch warning for camp {camp['camp_id']}: {e}")
+            camp['custom_fields'] = {}
+
     return results
 
-@app.put('/camp')
+
+@app.put('/camp/')
 async def update_camp(camp_id: int, payload: dict):
-    campNumber = payload.get('campNumber')
+    camp_id = payload.get('camp_id')
+    start_time = payload.get('start_time')
+    end_time = payload.get('end_time')
+    description = payload.get('description')
 
     try:
         conn = get_mysql_conn()
         with conn.cursor() as cursor:
             cursor.execute('USE YouthGroup;')
             cursor.execute(''' UPDATE Camp
-                SET campNumber = %s
-                WHERE id = %s;''', (campNumber))
+               SET description = %s, start_time=%s, end_time=%s
+               WHERE id = %s;''', (description, start_time, end_time, camp_id))
             conn.commit()
             if cursor.rowcount == 0:
                 raise HTTPException(404, 'Camp not found')
@@ -754,7 +988,8 @@ async def update_camp(camp_id: int, payload: dict):
         conn.close()
     return {'message': 'Camp updated successfully'}
 
-@app.delete('/Camp')
+
+@app.delete('/camp/')
 async def delete_camp(camp_id: int):
     try:
         conn = get_mysql_conn()
@@ -772,6 +1007,166 @@ async def delete_camp(camp_id: int):
     return {"message": "Camp deleted successfully"}
 
 
+@app.get('/camp/{campId}')
+async def get_camp(campId: int):
+    try:
+        conn = get_mysql_conn()
+        with conn.cursor() as cursor:
+            cursor.execute('USE YouthGroup;')
+            cursor.execute('''
+               SELECT
+                   c.id as camp_id,
+                   e.start_time AS StartTime,
+                   e.end_time AS EndTime,
+                   e.description as description
+               FROM Camp c
+               JOIN Event e ON e.id = c.id
+               WHERE c.id = %s;
+           ''', (campId,))
+            results = cursor.fetchone()
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Database query failed: {str(e)}"
+        )
+    finally:
+        conn.close()
+
+    if not results:
+        raise HTTPException(
+            status_code=404,
+            detail="Camp not found"
+        )
+
+    # Add custom fields from MongoDB
+    try:
+        custom_doc = mongo_camp_custom_values().find_one({'camp_id': campId})
+        results['custom_fields'] = custom_doc.get('custom_fields', {}) if custom_doc else {}
+    except Exception as e:
+        print(f"MongoDB fetch warning: {e}")
+        results['custom_fields'] = {}
+
+    return results
+
+
+@app.post('/camp')
+async def create_camp(payload: dict):
+    venue_id = payload.get('venue_id')
+    start_time = payload.get('start_time')
+    end_time = payload.get('end_time')
+    description = payload.get('description')
+    custom_fields = payload.get('custom_fields', {})
+
+    if not all([venue_id, start_time, end_time]):
+        raise HTTPException(400, 'Missing required camp fields')
+
+    event_id = None
+    camp_id = None
+
+    try:
+        conn = get_mysql_conn()
+        with conn.cursor() as cursor:
+            cursor.execute('USE YouthGroup;')
+            cursor.execute("""
+               INSERT INTO Event (venue_id, start_time, end_time, description)
+               VALUES (%s, %s, %s, %s);
+           """, (venue_id, start_time, end_time, description))
+            conn.commit()
+            event_id = cursor.lastrowid
+
+            cursor.execute("""
+               INSERT INTO Camp (id)
+               VALUES (%s);
+           """, (event_id,))
+            conn.commit()
+            camp_id = cursor.lastrowid
+    except Exception as e:
+        raise HTTPException(500, f"MySQL insert failed: {e}")
+    finally:
+        conn.close()
+
+    # Save custom fields to MongoDB if provided
+    if custom_fields and camp_id:
+        try:
+            mongo_camp_custom_values().insert_one({
+                'camp_id': camp_id,
+                'event_id': event_id,
+                'custom_fields': custom_fields,
+            })
+        except Exception as e:
+            print(f"MongoDB insert warning: {e}")
+
+    return {
+        'message': 'Camp created',
+        'event_id': event_id,
+        'camp_id': camp_id,
+        'custom_fields': custom_fields
+    }
+
+
+@app.put('/camp/{camp_id}')
+async def update_camp(camp_id: int, payload: dict):
+    start_time = payload.get('start_time')
+    end_time = payload.get('end_time')
+    description = payload.get('description')
+    custom_fields = payload.get('custom_fields')
+
+    try:
+        conn = get_mysql_conn()
+        with conn.cursor() as cursor:
+            cursor.execute('USE YouthGroup;')
+            # Update the Event table since Camp inherits from Event
+            cursor.execute('''
+               UPDATE Event e
+               JOIN Camp c ON c.id = e.id
+               SET e.start_time = %s, e.end_time = %s, e.description = %s
+               WHERE c.id = %s;
+           ''', (start_time, end_time, description, camp_id))
+            conn.commit()
+            if cursor.rowcount == 0:
+                raise HTTPException(404, 'Camp not found')
+    except Exception as e:
+        raise HTTPException(500, f'Database query failed: {str(e)}')
+    finally:
+        conn.close()
+
+    # Update custom fields in MongoDB if provided
+    if custom_fields is not None:
+        try:
+            mongo_camp_custom_values().update_one(
+                {'camp_id': camp_id},
+                {'$set': {'custom_fields': custom_fields}},
+                upsert=True
+            )
+        except Exception as e:
+            print(f"MongoDB update warning: {e}")
+
+    return {'message': 'Camp updated successfully'}
+
+
+@app.delete('/camp/{camp_id}')
+async def delete_camp(camp_id: int):
+    try:
+        conn = get_mysql_conn()
+        with conn.cursor() as cursor:
+            cursor.execute('USE YouthGroup;')
+            cursor.execute('DELETE FROM Camp WHERE id = %s;', (camp_id,))
+            conn.commit()
+            if cursor.rowcount == 0:
+                raise HTTPException(404, "Camp not found")
+    except Exception as e:
+        raise HTTPException(500, f"Delete failed: {e}")
+    finally:
+        conn.close()
+
+    # Delete associated MongoDB document
+    try:
+        mongo_camp_custom_values().delete_one({'camp_id': camp_id})
+    except Exception as e:
+        print(f"MongoDB delete warning: {e}")
+
+    return {"message": "Camp deleted successfully"}
+
 
 @app.get('/venue')
 async def get_venues():
@@ -781,7 +1176,7 @@ async def get_venues():
             cursor.execute('USE YouthGroup;')
             cursor.execute(
                 '''
-                    SELECT 
+                    SELECT
                         v.address as VenueAdress,
                         v.description AS description
                     FROM Venue v;
@@ -814,8 +1209,8 @@ async def update_venue(venue_id: int, payload: dict):
         with conn.cursor() as cursor:
             cursor.execute('USE YouthGroup;')
             cursor.execute(''' UPDATE Venue
-                SET address = %s, description = %s
-                WHERE id = %s;''', (address, description))
+               SET address = %s, description = %s
+               WHERE id = %s;''', (address, description))
             conn.commit()
             if cursor.rowcount == 0:
                 raise HTTPException(404, 'Venue not found')
@@ -824,6 +1219,7 @@ async def update_venue(venue_id: int, payload: dict):
     finally:
         conn.close()
     return {'message': 'Venue updated successfully'}
+
 
 @app.delete('/Venue')
 async def delete_venue(venue_id: int):
@@ -843,8 +1239,6 @@ async def delete_venue(venue_id: int):
     return {"message": "Venue deleted successfully"}
 
 
-
-
 @app.get('/student/{student_id}/')
 async def get_student(student_id: int):
     conn = get_mysql_conn()
@@ -853,7 +1247,7 @@ async def get_student(student_id: int):
             cursor.execute('USE YouthGroup;')
             cursor.execute(
                 """
-            SELECT 
+            SELECT
                 CONCAT(p.first_name, ' ', p.last_name) AS parent_name,
                 CONCAT(s.first_name, ' ', s.last_name) AS student_name,
                 sg.name AS small_group_name,
@@ -884,6 +1278,7 @@ async def get_student(student_id: int):
 
     return results
 
+
 @app.put('/student/{student_id}')
 async def update_student(student_id: int, payload: dict):
     email = payload.get('email')
@@ -899,8 +1294,9 @@ async def update_student(student_id: int, payload: dict):
         with conn.cursor() as cursor:
             cursor.execute('USE YouthGroup;')
             cursor.execute(''' UPDATE Student
-                SET email = %s, phone_number = %s, note = %s, student_name = %s, parent_name = %s, small_group_name = %s, small_group_leader_name = %s
-                WHERE id = %s;''', (email, phone_number, note, student_id, student_name, parent_name, small_group_name, small_group_leader_name))
+               SET email = %s, phone_number = %s, note = %s, student_name = %s, parent_name = %s, small_group_name = %s, small_group_leader_name = %s
+               WHERE id = %s;''', (email, phone_number, note, student_id, student_name, parent_name, small_group_name,
+                                   small_group_leader_name))
             conn.commit()
             if cursor.rowcount == 0:
                 raise HTTPException(404, 'Student not found')
@@ -909,6 +1305,7 @@ async def update_student(student_id: int, payload: dict):
     finally:
         conn.close()
     return {'message': 'Student updated successfully'}
+
 
 @app.delete('/student/{student_id}')
 async def delete_student(student_id: int):
@@ -928,7 +1325,6 @@ async def delete_student(student_id: int):
     return {"message": "Student deleted successfully"}
 
 
-
 @app.get('/leader/{leaderId}')
 async def get_leader(leaderId: int):
     try:
@@ -937,7 +1333,7 @@ async def get_leader(leaderId: int):
             cursor.execute('USE YouthGroup;')
             cursor.execute(
                 '''
-                    SELECT 
+                    SELECT
                         CONCAT(l.first_name, ' ', l.last_name) AS leader_name,
                         sg.name AS small_group_name,
                         l.date_joined AS datejoined,
@@ -950,13 +1346,14 @@ async def get_leader(leaderId: int):
                         s.end_time AS ShiftEndTime,
                         l.note AS note
                     FROM Leader l
-                    LEFT JOIN LeaderRole lr ON lr.leader_id = l.id
+                     LEFT JOIN LeaderRole lr ON lr.leader_id = l.id
                     LEFT JOIN Role r ON lr.role_id = r.id
                     LEFT JOIN LeaderShift ls ON ls.leader_id = l.id
                     LEFT JOIN Shift s ON s.id = ls.shift_id
                     LEFT JOIN SmallGroup sg ON sg.leader_id = l.id
-                    WHERE l.id = %s
-                ''', (leaderId,))
+                    WHERE l.id = %s;
+                ''')
+
             results = cursor.fetchone()
     except Exception as e:
         raise HTTPException(
@@ -991,8 +1388,9 @@ async def update_leader(leader_id: int, payload: dict):
         with conn.cursor() as cursor:
             cursor.execute('USE YouthGroup;')
             cursor.execute(''' UPDATE Leader
-                SET email = %s, phone_number = %s, note = %s, small_group_name = %s, date_joined = %s, salary=%s, start_time=%s, end_time=%s
-                WHERE id = %s;''', (email, phone_number, note, small_group_name, datejoined, salary, start_time, end_time, leader_id))
+               SET email = %s, phone_number = %s, note = %s, small_group_name = %s, date_joined = %s, salary=%s, start_time=%s, end_time=%s
+               WHERE id = %s;''', (
+                email, phone_number, note, small_group_name, datejoined, salary, start_time, end_time, leader_id))
             conn.commit()
             if cursor.rowcount == 0:
                 raise HTTPException(404, 'Leader not found')
@@ -1002,7 +1400,8 @@ async def update_leader(leader_id: int, payload: dict):
         conn.close()
     return {'message': 'Leader updated successfully'}
 
-@app.delete('/Leader/{leader_id}')
+
+@app.delete('/leader/{leader_id}')
 async def delete_leader(leader_id: int):
     try:
         conn = get_mysql_conn()
@@ -1020,160 +1419,6 @@ async def delete_leader(leader_id: int):
     return {"message": "Leader deleted successfully"}
 
 
-@app.get('/event/{eventId}')
-async def get_events(eventId: int):
-    try:
-        conn = get_mysql_conn()
-        with conn.cursor() as cursor:
-            cursor.execute('USE YouthGroup;')
-            cursor.execute(
-                '''
-                    SELECT 
-                        e.start_time AS StartTime,
-                        e.end_time AS EndTime,
-                        sa.student_id AS studentId,
-                        v.address as VenueAdress,
-                        e.description AS description
-                    FROM Event e
-                    JOIN Venue v ON e.venue_id = v.id
-                    JOIN StudentAttendance sa ON sa.event_id = e.id
-                    WHERE e.id = %s;
-                ''', (eventId,))
-            results = cursor.fetchall()
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Database query failed: {str(e)}"
-        )
-    finally:
-        conn.close()
-
-    if not results:
-        raise HTTPException(
-            status_code=404,
-            detail=f"No events with {eventId} found"
-        )
-
-    return results
-
-
-
-@app.put('/event/{event_id}')
-async def update_event(event_id: int, payload: dict):
-    description = payload.get('description')
-    start_time = payload.get('start_time')
-    end_time = payload.get('end_time')
-
-    try:
-        conn = get_mysql_conn()
-        with conn.cursor() as cursor:
-            cursor.execute('USE YouthGroup;')
-            cursor.execute(''' UPDATE Leader
-                SET description = %s, start_time=%s, end_time=%s
-                WHERE id = %s;''', (description, start_time, end_time, event_id))
-            conn.commit()
-            if cursor.rowcount == 0:
-                raise HTTPException(404, 'Event not found')
-    except Exception as e:
-        raise HTTPException(500, f'Database query failed: {str(e)}')
-    finally:
-        conn.close()
-    return {'message': 'Event updated successfully'}
-
-@app.delete('/Event/{event_id}')
-async def delete_event(event_id: int):
-    try:
-        conn = get_mysql_conn()
-        with conn.cursor() as cursor:
-            cursor.execute('USE YouthGroup;')
-            cursor.execute('DELETE FROM Event WHERE id = %s;', (event_id,))
-            conn.commit()
-            if cursor.rowcount == 0:
-                raise HTTPException(404, "Event not found")
-    except Exception as e:
-        raise HTTPException(500, f"Delete failed: {e}")
-    finally:
-        conn.close()
-
-    return {"message": "Event deleted successfully"}
-
-
-@app.get('/camp/{campId}')
-async def get_camp(campId: int):
-    try:
-        conn = get_mysql_conn()
-        with conn.cursor() as cursor:
-            cursor.execute('USE YouthGroup;')
-            cursor.execute(
-                '''
-                    SELECT 
-                        c.id as CampNumber,
-                        e.start_time AS StartTime,
-                        e.end_time AS EndTime,
-                        e.description as description
-                    FROM Camp c
-                    JOIN Event e ON e.id = c.id
-                    WHERE c.id = %s;
-                ''', (campId,))
-            results = cursor.fetchall()
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Database query failed: {str(e)}"
-        )
-    finally:
-        conn.close()
-
-    if not results:
-        raise HTTPException(
-            status_code=404,
-            detail="No camps found"
-        )
-
-    return results
-
-
-@app.put('/camp/{camp_id}')
-async def update_camp(camp_id: int, payload: dict):
-    campNumber = payload.get('campNumber')
-    startTime = payload.get('startTime')
-    EndTime = payload.get('EndTime')
-    description = payload.get('description')
-
-    try:
-        conn = get_mysql_conn()
-        with conn.cursor() as cursor:
-            cursor.execute('USE YouthGroup;')
-            cursor.execute(''' UPDATE Camp
-                SET campNumber = %s, start_time=%s, end_time=%s, description=%s
-                WHERE id = %s;''', (campNumber, startTime, EndTime, description, camp_id))
-            conn.commit()
-            if cursor.rowcount == 0:
-                raise HTTPException(404, 'Camp not found')
-    except Exception as e:
-        raise HTTPException(500, f'Database query failed: {str(e)}')
-    finally:
-        conn.close()
-    return {'message': 'Camp updated successfully'}
-
-@app.delete('/Camp')
-async def delete_camp(camp_id: int):
-    try:
-        conn = get_mysql_conn()
-        with conn.cursor() as cursor:
-            cursor.execute('USE YouthGroup;')
-            cursor.execute('DELETE FROM Camp WHERE id = %s;', (camp_id,))
-            conn.commit()
-            if cursor.rowcount == 0:
-                raise HTTPException(404, "Camp not found")
-    except Exception as e:
-        raise HTTPException(500, f"Delete failed: {e}")
-    finally:
-        conn.close()
-
-    return {"message": "Camp deleted successfully"}
-
-
 @app.get('/venue/{venueId}')
 async def get_venue(venueId: int):
     try:
@@ -1182,9 +1427,10 @@ async def get_venue(venueId: int):
             cursor.execute('USE YouthGroup;')
             cursor.execute(
                 '''
-                    SELECT 
+                    SELECT
                         v.address as VenueAdress,
                         v.description AS descriptionVenue,
+                        v.description AS description,
                         e.description AS description
                     FROM Venue v
                     JOIN Event e ON e.venue_id = v.id
@@ -1207,7 +1453,9 @@ async def get_venue(venueId: int):
 
     return results
 
+
 # Does camp have its own id or it has the event_id
+
 
 @app.put('/venue/{venue_id}')
 async def update_venue(venue_id: int, payload: dict):
@@ -1220,8 +1468,8 @@ async def update_venue(venue_id: int, payload: dict):
         with conn.cursor() as cursor:
             cursor.execute('USE YouthGroup;')
             cursor.execute(''' UPDATE Venue
-                SET address = %s, description = %s, descriptionVenue = %s
-                WHERE id = %s;''', (address, description, descriptionVenue, venue_id))
+               SET address = %s, description = %s, descriptionVenue = %s
+               WHERE id = %s;''', (address, description, descriptionVenue, venue_id))
             conn.commit()
             if cursor.rowcount == 0:
                 raise HTTPException(404, 'Venue not found')
@@ -1231,7 +1479,8 @@ async def update_venue(venue_id: int, payload: dict):
         conn.close()
     return {'message': 'Venue updated successfully'}
 
-@app.delete('/Venue')
+
+@app.delete('/venue/{venue_id}')
 async def delete_venue(venue_id: int):
     try:
         conn = get_mysql_conn()
@@ -1257,16 +1506,22 @@ async def student_camp_registration(campId: int):
             cursor.execute('USE YouthGroup;')
             cursor.execute(
                 '''
-                    SELECT 
+                    SELECT
                         c.id AS campId,
                         i.amount AS AmountPaid,
                         e.description AS description,
+ 
+ 
                         v.address AS VenueAddress,
                         v.description AS descriptionVenue
+ 
+ 
+                        v.address AS VenueAdress,
+                        v.description AS description
                     FROM CampRegistration cp
-                    JOIN Camp c ON cp.camp_id = c.id 
+                    JOIN Camp c ON cp.camp_id = c.id
                     JOIN Event e ON c.id = e.id
-                    JOIN Venue v ON e.venue_id = v.id 
+                    JOIN Venue v ON e.venue_id = v.id
                     JOIN Invoice i ON cp.invoice_id = i.id
                     WHERE c.id = %s;
                 ''', (campId,))
@@ -1296,14 +1551,13 @@ async def update_student_camp_registration(camp_id: int, payload: dict):
     VenueAddress = payload.get('venueAdress')
     descriptionVenue = payload.get('descriptionVenue')
 
-
     try:
         conn = get_mysql_conn()
         with conn.cursor() as cursor:
             cursor.execute('USE YouthGroup;')
             cursor.execute(''' UPDATE camp
-                SET VenueAddress = %s, description = %s, descriptionVenue = %s, AmountPaid = %s, camp_id = %s
-                WHERE id = %s;''', (camp_id, description, AmountPaid, descriptionVenue, VenueAddress))
+               SET VenueAddress = %s, description = %s, descriptionVenue = %s, AmountPaid = %s, camp_id = %s
+               WHERE id = %s;''', (camp_id, description, AmountPaid, descriptionVenue, VenueAddress))
             conn.commit()
             if cursor.rowcount == 0:
                 raise HTTPException(404, 'Camp Registration not found')
@@ -1312,6 +1566,7 @@ async def update_student_camp_registration(camp_id: int, payload: dict):
     finally:
         conn.close()
     return {'message': 'Camp Registration updated successfully'}
+
 
 @app.delete('/camp/registration/{campId}')
 async def delete_student_camp_registration(camp_id: int):
@@ -1330,6 +1585,7 @@ async def delete_student_camp_registration(camp_id: int):
 
     return {"message": "CampRegistration deleted successfully"}
 
+
 @app.get('/leader/smallgroup/{leaderId}')
 async def leader_small_group(leaderId: int):
     try:
@@ -1337,17 +1593,19 @@ async def leader_small_group(leaderId: int):
         with conn.cursor() as cursor:
             cursor.execute('USE YouthGroup;')
             cursor.execute(
-    '''
-    SELECT  
-        sg.name AS small_group_name,
-        sg.meeting_time AS meeting_time,
-        CONCAT(s.first_name, ' ', s.last_name) AS student_name
+                '''
+    SELECT 
+      CONCAT(l.first_name, ' ', l.last_name) AS leader_name,
+    sg.name AS small_group_name,
+    sg.meeting_time AS MeetingTime,
+    CONCAT(s.first_name, ' ', s.last_name) AS student_name
     FROM Student s
         JOIN SmallGroup sg ON sg.id = s.small_group_id
         JOIN Leader l ON l.id = sg.leader_id
-    WHERE l.id = %s;
-    ''', (leaderId,))
-            results = cursor.fetchall()
+    WHERE l.id = %s
+    GROUP BY s.id;
+   ''', (leaderId,))
+            results = cursor.fetchone()
     except Exception as e:
         raise HTTPException(
             status_code=500,
@@ -1371,14 +1629,13 @@ async def update_leader_small_group(leaderId: int, payload: dict):
     student_name = payload.get('student_name')
     smallGroupName = payload.get('smallGroupName')
 
-
     try:
         conn = get_mysql_conn()
         with conn.cursor() as cursor:
             cursor.execute('USE YouthGroup;')
             cursor.execute(''' UPDATE leader
-                SET meeting_time = %s, student_name = %s, smallGroupName = %s, leader_id = %s
-                WHERE id = %s;''', (meeting_time, student_name, smallGroupName, leaderId))
+               SET meeting_time = %s, student_name = %s, smallGroupName = %s, leader_id = %s
+               WHERE id = %s;''', (meeting_time, student_name, smallGroupName, leaderId))
             conn.commit()
             if cursor.rowcount == 0:
                 raise HTTPException(404, 'Leader small group not found')
@@ -1387,6 +1644,7 @@ async def update_leader_small_group(leaderId: int, payload: dict):
     finally:
         conn.close()
     return {'message': 'Leader small group updated successfully'}
+
 
 @app.delete('/leader/smallgroup/{leaderId}')
 async def delete_leader_small_group(leaderId: int):
@@ -1406,7 +1664,6 @@ async def delete_leader_small_group(leaderId: int):
     return {"message": "Leader small group deleted successfully"}
 
 
-
 @app.get('/event/registration/{eventId}')
 async def event_student_attendance(eventId: int):
     try:
@@ -1414,7 +1671,7 @@ async def event_student_attendance(eventId: int):
         with conn.cursor() as cursor:
             cursor.execute('USE YouthGroup;')
             cursor.execute(
-    '''
+                '''
     SELECT *
     FROM Event e
         JOIN StudentAttendance sa ON e.id = sa.event_id
@@ -1438,27 +1695,6 @@ async def event_student_attendance(eventId: int):
 
     return results
 
-# Look at the er diagram
-@app.put('/event/registration/{eventId}')
-async def update_event_student_attendance(eventId: int, payload: dict):
-    eventId = payload.get('campId')
-
-
-    try:
-        conn = get_mysql_conn()
-        with conn.cursor() as cursor:
-            cursor.execute('USE YouthGroup;')
-            cursor.execute(''' UPDATE camp
-                SET eventId = %s
-                WHERE id = %s;''', (eventId))
-            conn.commit()
-            if cursor.rowcount == 0:
-                raise HTTPException(404, 'event_student_attendance not found')
-    except Exception as e:
-        raise HTTPException(500, f'Database query failed: {str(e)}')
-    finally:
-        conn.close()
-    return {'message': 'event_student_attendance updated successfully'}
 
 @app.delete('/event/registration/{eventId}')
 async def delete_event_student_attendance(eventId: int):
@@ -1495,11 +1731,20 @@ async def camp_registration_students(student_id: int):
                          CONCAT(p.first_name, ' ', p.last_name) AS parent_name,
                          e.description AS description,
                          v.address AS venue_address
+ 
+ 
+                         cp.timestamp AS RegisteredTime,
+                         i.amount AS AmountPaid,
+                         cp.timestamp AS registered_time,
+                         i.amount AS amount_paid,
+                         CONCAT(p.first_name, ' ', p.last_name) AS parent_name,
+                         e.description AS description,
+                         v.address AS venue_adress
                     FROM CampRegistration cp
                     JOIN Invoice i ON cp.invoice_id = i.id
                     JOIN Student s ON s.id = i.student_id
                     JOIN Parent p ON s.parent_id = p.id
-                    JOIN Camp c ON cp.camp_id = c.id 
+                    JOIN Camp c ON cp.camp_id = c.id
                     JOIN Event e ON c.id = e.id
                     JOIN Venue v ON e.venue_id = v.id
                     WHERE s.id = %s;
@@ -1532,14 +1777,14 @@ async def update_camp_registration_students(student_id: int, payload: dict):
     description = payload.get('description')
     venue_address = payload.get('venue_address')
 
-
     try:
         conn = get_mysql_conn()
         with conn.cursor() as cursor:
             cursor.execute('USE YouthGroup;')
             cursor.execute(''' UPDATE camp, student
-                SET student_name = %s, campId = %s, registered_time = %s, amount_paid = %s, parent_name = %s, description = %s, venue_address = %s
-                WHERE id = %s;''', (student_name, campId, registered_time, amount_paid, parent_name, description, venue_address))
+               SET student_name = %s, campId = %s, registered_time = %s, amount_paid = %s, parent_name = %s, description = %s, venue_address = %s
+               WHERE id = %s;''', (
+                student_name, campId, registered_time, amount_paid, parent_name, description, venue_address))
             conn.commit()
             if cursor.rowcount == 0:
                 raise HTTPException(404, 'Camp Registration students not found')
@@ -1548,6 +1793,7 @@ async def update_camp_registration_students(student_id: int, payload: dict):
     finally:
         conn.close()
     return {'message': 'Camp Registration students updated successfully'}
+
 
 @app.delete('/camp/registration/{campId}')
 async def delete_camp_registration_students(student_id: int):
@@ -1565,116 +1811,3 @@ async def delete_camp_registration_students(student_id: int):
         conn.close()
 
     return {"message": "CampRegistration students deleted successfully"}
-
-
-def mongo_event_custom_values():
-    client = get_mongo_conn()
-    db = client['YouthGroup']
-    return db['event_custom_values']
-
-
-@app.post('/events')
-async def create_event(payload: dict):
-    event_id = payload.get('event_id')
-    date = payload.get('date')
-    venue_id = payload.get('venue_id')
-    start_time = payload.get('start_time')
-    end_time = payload.get('end_time')
-    description = payload.get('description')
-    custom_fields = payload.get('custom_fields', {})
-
-    if not all([event_id, date, venue_id, start_time, end_time]):
-        raise HTTPException(400, 'Missing required event fields')
-
-    try:
-        conn = get_mysql_conn()
-        with conn.cursor() as cursor:
-            cursor.execute("""
-                   INSERT INTO Event (event_type_id, venue_id, start_time, end_time, description)
-                   VALUES (%s, %s, %s, %s, %s);
-               """, (event_id, venue_id, start_time, end_time, description))
-
-            conn.commit()
-            event_id = cursor.lastrowid  # ← NOW event_id exists!
-    except Exception as e:
-        raise HTTPException(500, f"MySQL insert failed: {e}")
-    finally:
-        conn.close()
-
-    try:
-        mongo_event_custom_values().insert_one({
-            'event_id':event_id,
-            'custom_fields':custom_fields,
-
-        })
-    except Exception as e:
-        raise HTTPException(500, f'MongoDB insert failed: {e}')
-
-    return {
-        'message': 'Event created',
-        'event_id': event_id,
-        'custom_fields': custom_fields
-    }
-
-def mongo_camp_custom_values():
-    client = get_mongo_conn()
-    db = client['YouthGroup']
-    return db['camp_custom_values']
-
-
-@app.post('/camps')
-async def create_camp(payload: dict):
-    date = payload.get('date')
-    venue_id = payload.get('venue_id')
-    start_time = payload.get('start_time')
-    end_time = payload.get('end_time')
-    description = payload.get('description')
-    custom_fields = payload.get('custom_fields', {})
-
-    if not all([ date, venue_id, start_time, end_time]):
-        raise HTTPException(400, 'Missing required event fields')
-
-    try:
-        conn = get_mysql_conn()
-        with conn.cursor() as cursor:
-            cursor.execute("""
-                   INSERT INTO Event ( venue_id, start_time, end_time, description)
-                   VALUES (%s, %s, %s, %s, %s);
-               """, ( venue_id, start_time, end_time, description))
-
-            conn.commit()
-            event_id = cursor.lastrowid
-            cursor.execute("""
-                            INSERT INTO CAMP (camp_id, event_id)
-                            VALUES (NULL, %s);
-                        """, (event_id,))
-            conn.commit()
-            camp_id = cursor.lastrowid
-    except Exception as e:
-        raise HTTPException(500, f"MySQL insert failed: {e}")
-    finally:
-        conn.close()
-
-    try:
-        mongo_camp_custom_values().insert_one({
-            'camp_id': camp_id,
-            'event_id': event_id,
-            'custom_fields': custom_fields,
-        })
-    except Exception as e:
-        raise HTTPException(500, f'MongoDB insert failed: {e}')
-
-    return {
-        'message': 'Camp created',
-        'event_id': event_id,
-        'camp_id': camp_id,
-        'custom_fields': custom_fields
-    }
-
-
-
-
-
-
-
-
