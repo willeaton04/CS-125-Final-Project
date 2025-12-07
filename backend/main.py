@@ -10,41 +10,16 @@ import redis
 from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
 import os
-# from strawberry.fastapi import GraphQLRouter
-# from app_graphql.schema import schema
+from strawberry.fastapi import GraphQLRouter
+from app_graphql.schema import schema, get_mysql_conn, get_redis_conn, get_mongo_conn
 
 app = FastAPI()
 load_dotenv()
 
-def get_mysql_conn():
-    return pymysql.connect(
-        host=os.getenv('MYSQL_HOST'),
-        port=3306,
-        user=os.getenv('MYSQL_USER'),
-        password=os.getenv('MYSQL_PASSWORD'),
-        database=os.getenv('MYSQL_DATABASE'),
-        cursorclass=pymysql.cursors.DictCursor
-    )
+# importing conn's from schema.py
 
-def get_redis_conn():
-    return redis.Redis(
-        host= os.getenv('REDIS_ENDPOINT'),
-        port=11044,
-        decode_responses=True,
-        username= os.getenv('REDIS_USERNAME'),
-        password= os.getenv('REDIS_PASSWORD')
-    )
-
-def get_mongo_conn():
-    client = MongoClient(
-        f"mongodb+srv://{os.getenv('MONGO_USER')}:{os.getenv('MONGO_PASSWORD')}@cs-125.3xkvzsq.mongodb.net/?appName=CS-125",
-        server_api=ServerApi('1')
-    )
-    return client
-
-# We'll figure out how to plug in Graphql later :)
-# graphql_app = GraphQLRouter(schema)
-# app.include_router(graphql_app, prefix="/graphql")
+graphql_app = GraphQLRouter(schema)
+app.include_router(graphql_app, prefix="/graphql")
 
 
 # ======================
@@ -744,7 +719,7 @@ async def get_camps():
                     SELECT 
                         c.id as CampNumber
                     FROM Camp c
-                    JOIN event e ON e.id = c.id;
+                    JOIN Event e ON e.id = c.id;
                 ''')
             results = cursor.fetchall()
     except Exception as e:
@@ -991,18 +966,20 @@ async def student_camp_registration(campId: int):
             cursor.execute('USE YouthGroup;')
             cursor.execute(
                 '''
-                    SELECT 
-                        c.id AS campId,
-                        i.amount AS AmountPaid,
-                        e.description AS description,
-                        v.address AS VenueAdress,
-                        v.description AS description
-                    FROM CampRegistration cp
-                    JOIN Camp c ON cp.camp_id = c.id 
-                    JOIN Event e ON c.id = e.id
-                    JOIN Venue v ON e.venue_id = v.id 
-                    JOIN Invoice i ON cp.invoice_id = i.id
-                    WHERE c.id = %s;
+            SELECT
+                c.id AS campId,
+                i.amount AS AmountPaid,
+                e.description AS description,
+                v.address AS VenueAdress,
+                v.description AS description
+            FROM CampRegistration cp
+                     JOIN Camp c ON cp.camp_id = c.id
+                     JOIN Event e ON c.id = e.id
+                     JOIN StudentAttendance sa ON e.id = sa.event_id
+                     JOIN Student s ON s.id = sa.event_id
+                     JOIN Venue v ON e.venue_id = v.id
+                     JOIN Invoice i ON cp.invoice_id = i.id
+                     WHERE c.id = %s;
                 ''', (campId,))
             results = cursor.fetchall()
     except Exception as e:
