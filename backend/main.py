@@ -11,7 +11,7 @@ from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
 import os
 # from strawberry.fastapi import GraphQLRouter
-from app_graphql.schema import schema
+# from app_graphql.schema import schema
 
 app = FastAPI()
 load_dotenv()
@@ -1136,7 +1136,7 @@ def mongo_event_custom_values():
     return db['event_custom_values']
 
 
-@app.post('/event')
+@app.post('/mongo/event')
 async def create_event(payload: dict):
     event_id = payload.get('event_id')
     date = payload.get('date')
@@ -1185,7 +1185,7 @@ def mongo_camp_custom_values():
     return db['camp_custom_values']
 
 
-@app.post('/camp')
+@app.post('/mongo/camp')
 async def create_camp(payload: dict):
     date = payload.get('date')
     venue_id = payload.get('venue_id')
