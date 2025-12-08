@@ -64,10 +64,6 @@ async def startup_event():
     setup_mongodb_indexes()
 
 
-# We'll figure out how to plug in Graphql later :)
-# graphql_app = GraphQLRouter(schema)
-# app.include_router(graphql_app, prefix="/graphql")
-
 
 # ======================
 #     REDIS ENDPOINTS
@@ -235,19 +231,19 @@ async def update_student_event_reg(event_id: int):
                 """
                 SELECT
                     e.id AS event_id,
-                    e.venue_id,
-                    e.start_time,
-                    e.end_time,
-                    e.description,
-                    sa.student_id,
-                    sa.timestamp,
-                    s.note,
-                    s.first_name,
-                    s.last_name,
-                    s.email,
-                    s.phone_number,
-                    s.parent_id,
-                    s.small_group_id
+                    e.venue_id AS venue_id,
+                    e.start_time AS start_time,
+                    e.end_time AS end_time,
+                    e.description AS end_time,
+                    sa.student_id AS student_id,
+                    sa.timestamp AS timestamp,
+                    s.note AS note,
+                    s.first_name AS first_name,
+                    s.last_name AS last_name,
+                    s.email AS email,
+                    s.phone_number AS phone_number,
+                    s.parent_id AS parent_id,
+                    s.small_group_id AS small_group_id
                 FROM Event e
                 JOIN StudentAttendance sa ON e.id = sa.event_id
                 JOIN Student s ON s.id = sa.student_id
@@ -304,7 +300,7 @@ async def update_student_event_reg(event_id: int):
             "message": "Event registration Redis cache updated",
             "event_id": event_id,
             "count": len(results),
-            "sucsess": True
+            "success": True
         }
 
 
@@ -348,7 +344,7 @@ async def delete_student_event_reg(event_id: int):
             "message": f"Redis event {event_id} data deleted",
             "event_id": event_id,
             "deleted_records": deleted_count,
-            "sucsess": True
+            "success": True
         }
 
 
