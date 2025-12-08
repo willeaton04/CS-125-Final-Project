@@ -1,5 +1,6 @@
 .idea/
 .venv/
+venv/
 .env
 backend/test.py
 .DS_Store
