@@ -33,18 +33,10 @@ def get_mongo_conn():
         )
     return _mongo_client
 
-
 def mongo_event_custom_values():
     client = get_mongo_conn()
     db = client['YouthGroup']
     return db['event_custom_values']
-
-
-def mongo_camp_custom_values():
-    client = get_mongo_conn()
-    db = client['YouthGroup']
-    return db['camp_custom_values']
-
 
 # Helps in sorting out and finding it instantly
 def setup_mongodb_indexes():
@@ -62,8 +54,6 @@ def setup_mongodb_indexes():
 @app.on_event("startup")
 async def startup_event():
     setup_mongodb_indexes()
-
-
 
 # ======================
 #     REDIS ENDPOINTS
@@ -753,7 +743,7 @@ async def delete_event(event_id: int):
     return {"message": "Event deleted successfully"}
 
 
-@app.get('/event/{eventId}')
+@app.get('/mongo/event/{eventId}')
 async def get_event(eventId: int):
     try:
         conn = get_mysql_conn()
@@ -801,7 +791,7 @@ async def get_event(eventId: int):
     }
 
 
-@app.post('/event/')
+@app.post('/mongo/event/')
 async def create_event(payload: dict):
     venue_id = payload.get('venue_id')
     start_time = payload.get('start_time')
@@ -846,7 +836,7 @@ async def create_event(payload: dict):
     }
 
 
-@app.put('/event/{event_id}')
+@app.put('/mongo/event/{event_id}')
 async def update_event(event_id: int, payload: dict):
     description = payload.get('description')
     start_time = payload.get('start_time')
@@ -883,7 +873,7 @@ async def update_event(event_id: int, payload: dict):
 
     return {'message': 'Event updated successfully'}
 
-@app.delete('/event/{event_id}')
+@app.delete('/mongo/event/{event_id}')
 async def delete_event(event_id: int):
     try:
         conn = get_mysql_conn()
