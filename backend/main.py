@@ -1755,16 +1755,6 @@ async def camp_registration_students(student_id: int):
     return results
 
 
-
-@app.post('/mongo/event')
-async def create_event(payload: dict):
-    event_id = payload.get('event_id')
-    date = payload.get('date')
-    venue_id = payload.get('venue_id')
-    start_time = payload.get('start_time')
-    end_time = payload.get('end_time')
-
-
 @app.put('/camp_registration/student/{student_id}')
 async def update_camp_registration_students(student_id: int, payload: dict):
     student_name = payload.get('student_name')
