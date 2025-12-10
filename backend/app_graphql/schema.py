@@ -28,12 +28,32 @@ def get_redis_conn():
         password=os.getenv('REDIS_PASSWORD')
     )
 
+_mongo_client = None
+
 def get_mongo_conn():
-    client = MongoClient(
-        f"mongodb+srv://{os.getenv('MONGO_USER')}:{os.getenv('MONGO_PASSWORD')}@cs-125.3xkvzsq.mongodb.net/?appName=CS-125",
-        server_api=ServerApi('1')
-    )
-    return client
+    global _mongo_client
+    if _mongo_client is None:
+        _mongo_client = MongoClient(
+            f"mongodb+srv://{os.getenv('MONGO_USER')}:{os.getenv('MONGO_PASSWORD')}@cs-125.3xkvzsq.mongodb.net/?appName=CS-125",
+            server_api=ServerApi('1')
+        )
+    return _mongo_client
+
+def mongo_event_custom_values():
+    client = get_mongo_conn()
+    db = client['YouthGroup']
+    return db['event_custom_values']
+
+# Helps in sorting out and finding it instantly
+def setup_mongodb_indexes():
+    """Setup MongoDB indexes for better performance. Run once during initialization."""
+    try:
+        mongo_event_custom_values().create_index('event_id', unique=True)
+        mongo_camp_custom_values().create_index('camp_id', unique=True)
+        print("MongoDB indexes created successfully")
+    except Exception as e:
+        print(f"MongoDB index creation warning: {e}")
+
 
 @strawberry.type
 class Student:
@@ -88,6 +108,11 @@ class EventDetail:
 @strawberry.type
 class Camp:
     CampNumber: int
+    StartTime: str
+    EndTime: str
+    Description: Optional[str]
+    VenueDescription: Optional[str]
+    VenueAddress: str
 
 @strawberry.type
 class CampDetail:
@@ -476,9 +501,15 @@ class Query:
                 cursor.execute('USE YouthGroup;')
                 cursor.execute('''
                 SELECT 
-                    c.id as CampNumber
+                    c.id as CampNumber,
+                    e.start_time as StartTime,
+                    e.end_time as EndTime,
+                    e.description as Description,
+                    v.description as VenueDescription,
+                    v.address as VenueAddress
                 FROM Camp c
-                JOIN event e ON e.id = c.id;
+                JOIN Event e ON e.id = c.id
+                JOIN Venue v ON v.id = e.venue_id;
                 ''')
                 results = cursor.fetchall()
                 return [Camp(**result) for result in results]
@@ -1057,21 +1088,20 @@ class Mutation:
                 event_id = cursor.lastrowid
 
                 cursor.execute('''
-                INSERT INTO Camp (camp_id, event_id)
-                VALUES (NULL, %s);
+                INSERT INTO Camp (id)
+                VALUES (%s);
                 ''', (event_id,))
                 mysql_conn.commit()
-                camp_id = cursor.lastrowid
+                # camp_id = cursor.lastrowid
 
             db = mongo_client['YouthGroup']
             collection = db['camp_custom_values']
             collection.insert_one({
-                'camp_id': camp_id,
                 'event_id': event_id,
                 'custom_fields': input.custom_fields or {},
             })
 
-            return f"Camp created with camp_id: {camp_id}, event_id: {event_id}"
+            return f"Camp created with event_id: {event_id}"
         finally:
             mysql_conn.close()
             mongo_client.close()

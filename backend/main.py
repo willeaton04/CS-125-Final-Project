@@ -12,42 +12,15 @@ from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
 import os
 from strawberry.fastapi import GraphQLRouter
-from app_graphql.schema import schema, get_mysql_conn, get_redis_conn
+from app_graphql.schema import schema, get_mysql_conn, get_redis_conn, get_mongo_conn, mongo_event_custom_values, setup_mongodb_indexes
 
 app = FastAPI()
 load_dotenv()
 
 # importing conn's from schema.py
 
-_mongo_client = None
-
 graphql_app = GraphQLRouter(schema)
 app.include_router(graphql_app, prefix="/graphql")
-
-def get_mongo_conn():
-    global _mongo_client
-    if _mongo_client is None:
-        _mongo_client = MongoClient(
-            f"mongodb+srv://{os.getenv('MONGO_USER')}:{os.getenv('MONGO_PASSWORD')}@cs-125.3xkvzsq.mongodb.net/?appName=CS-125",
-            server_api=ServerApi('1')
-        )
-    return _mongo_client
-
-def mongo_event_custom_values():
-    client = get_mongo_conn()
-    db = client['YouthGroup']
-    return db['event_custom_values']
-
-# Helps in sorting out and finding it instantly
-def setup_mongodb_indexes():
-    """Setup MongoDB indexes for better performance. Run once during initialization."""
-    try:
-        mongo_event_custom_values().create_index('event_id', unique=True)
-        mongo_camp_custom_values().create_index('camp_id', unique=True)
-        print("MongoDB indexes created successfully")
-    except Exception as e:
-        print(f"MongoDB index creation warning: {e}")
-
 
 # This decorator tells FastAPI: "Run this function ONE
 # TIME when the application starts up, before handling any requests."
@@ -1689,7 +1662,7 @@ async def delete_event_student_attendance(eventId: int):
         conn = get_mysql_conn()
         with conn.cursor() as cursor:
             cursor.execute('USE YouthGroup;')
-            cursor.execute('DELETE FROM event WHERE id = %s;', (eventId,))
+            cursor.execute('DELETE FROM Event WHERE id = %s;', (eventId,))
             conn.commit()
             if cursor.rowcount == 0:
                 raise HTTPException(404, "CampRegistration not found")
