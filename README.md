@@ -81,11 +81,11 @@ chmod +x build-services.sh && ./build-services.sh
 +--------------------------------------------------+
 ```
 
-## Files Infrastructure  
+# Files Infrastructure  
 
 Our file contains two directories: Backend and Db 
 
-# Backend
+## Backend
 This directory contains all the fields necessary for the backend knowledge. It holds the 
 logic that makes fetching, writing, reading, modifying and all other functionalities possible. Here are the files in the backend:
 
