@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouthGroup Full Admin Dashboard</title>
+    <style>
+        :root {
+            --primary: #4c51bf;
+            --secondary: #667eea;
+            --bg: #f7fafc;
+            --text: #2d3748;
+            --white: #ffffff;
+            --border: #e2e8f0;
+            --danger: #e53e3e;
+            --success: #38a169;
+        }
+
+        body {
+            font-family: -apple-system, system-ui, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            display: flex;
+            height: 100vh;
+        }
+
+        /* Sidebar */
+        aside {
+            width: 240px;
+            background-color: #1a202c;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+        }
+
+        .brand {
+            padding: 1.5rem;
+            font-size: 1.25rem;
+            font-weight: bold;
+            border-bottom: 1px solid #2d3748;
+        }
+
+        nav { padding: 1rem 0; flex: 1; overflow-y: auto; }
+
+        nav button {
+            background: none;
+            border: none;
+            width: 100%;
+            text-align: left;
+            padding: 1rem 1.5rem;
+            cursor: pointer;
+            color: #a0aec0;
+            font-size: 0.95rem;
+            transition: all 0.2s;
+        }
+
+        nav button:hover { background-color: #2d3748; color: white; }
+        nav button.active { background-color: var(--primary); color: white; border-right: 4px solid var(--secondary); }
+
+        /* Main Content */
+        main {
+            flex: 1;
+            padding: 2rem;
+            overflow-y: auto;
+        }
+
+        .view-section { display: none; }
+        .view-section.active { display: block; }
+
+        /* Cards & Layouts */
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+        .card {
+            background: var(--white);
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 1.5rem;
+        }
+
+        h2 { margin-top: 0; border-bottom: 2px solid var(--border); padding-bottom: 0.5rem; font-size: 1.2rem; }
+        h3 { font-size: 1rem; color: #4a5568; margin-bottom: 1rem; }
+
+        /* Tables */
+        .table-container { overflow-x: auto; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+        th, td { padding: 10px; text-align: left; border-bottom: 1px solid var(--border); }
+        th { background-color: #f8f9fa; font-weight: 600; }
+        tr:hover { background-color: #f1f5f9; }
+
+        /* Forms */
+        .form-group { margin-bottom: 1rem; }
+        label { display: block; margin-bottom: 0.4rem; font-size: 0.85rem; font-weight: 600; }
+        input, select, textarea {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-family: inherit;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        .btn-primary { background-color: var(--primary); color: white; }
+        .btn-primary:hover { background-color: var(--secondary); }
+        .btn-danger { background-color: var(--danger); color: white; }
+        .btn-success { background-color: var(--success); color: white; }
+
+        /* Results Box */
+        .json-box {
+            background: #2d3748;
+            color: #a0aec0;
+            padding: 1rem;
+            border-radius: 4px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 200px;
+            overflow-y: auto;
+            font-size: 0.8rem;
+        }
+    </style>
+</head>
+<body>
+
+<aside>
+    <div class="brand">YouthGroup Admin</div>
+    <nav>
+        <button class="active" onclick="switchTab('students')">Students</button>
+        <button onclick="switchTab('parents')">Parents</button>
+        <button onclick="switchTab('leaders')">Leaders</button>
+        <button onclick="switchTab('events')">Events & Redis</button>
+        <button onclick="switchTab('camps')">Camps</button>
+        <button onclick="switchTab('venues')">Venues</button>
+    </nav>
+</aside>
+
+<main>
+
+    <section id="students" class="view-section active">
+        <div class="card">
+            <div style="display:flex; justify-content:space-between;">
+                <h2>All Students</h2>
+                <button class="btn btn-primary" onclick="loadStudents()">Refresh List</button>
+            </div>
+            <div class="table-container">
+                <table id="table-students">
+                    <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Group</th><th>Parent</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="grid-2">
+            <div class="card">
+                <h3>Find Student by ID</h3>
+                <div class="form-group"><input type="number" id="std-find-id" placeholder="Student ID"></div>
+                <button class="btn btn-primary" onclick="findStudent()">Find</button>
+                <div id="std-result" class="json-box" style="margin-top:10px;"></div>
+            </div>
+
+            <div class="card">
+                <h3>Update / Delete Student</h3>
+                <div class="form-group"><input type="number" id="std-upd-id" placeholder="ID to Update/Delete"></div>
+                <div class="form-group"><input type="text" id="std-upd-email" placeholder="New Email"></div>
+                <div class="form-group"><input type="text" id="std-upd-phone" placeholder="New Phone"></div>
+                <div class="form-group"><input type="text" id="std-upd-note" placeholder="New Note"></div>
+                <div style="display:flex; gap:10px;">
+                    <button class="btn btn-primary" onclick="updateStudent()">Update</button>
+                    <button class="btn btn-danger" onclick="deleteStudent()">Delete</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="parents" class="view-section">
+        <div class="card">
+            <div style="display:flex; justify-content:space-between;">
+                <h2>All Parents</h2>
+                <button class="btn btn-primary" onclick="loadParents()">Refresh List</button>
+            </div>
+            <div class="table-container">
+                <table id="table-parents">
+                    <thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Phone</th><th>Children</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>Manage Parent</h3>
+            <div class="grid-2">
+                <div>
+                    <label>Parent ID</label>
+                    <input type="number" id="par-id" placeholder="ID">
+                </div>
+                <div>
+                    <label>Actions</label>
+                    <div style="display:flex; gap:10px;">
+                        <button class="btn btn-primary" onclick="updateParent()">Update Details Below</button>
+                        <button class="btn btn-danger" onclick="deleteParent()">Delete Parent</button>
+                    </div>
+                </div>
+            </div>
+            <div style="margin-top:1rem;" class="grid-2">
+                <input type="text" id="par-email" placeholder="New Email">
+                <input type="text" id="par-phone" placeholder="New Phone">
+                <input type="text" id="par-note" placeholder="New Note" style="grid-column: span 2;">
+            </div>
+        </div>
+    </section>
+
+    <section id="leaders" class="view-section">
+        <div class="card">
+            <div style="display:flex; justify-content:space-between;">
+                <h2>Leaders</h2>
+                <button class="btn btn-primary" onclick="loadLeaders()">Refresh</button>
+            </div>
+            <div class="table-container">
+                <table id="table-leaders">
+                    <thead><tr><th>ID</th><th>Name</th><th>Group</th><th>Email</th><th>Salary</th><th>Shifts</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="grid-2">
+            <div class="card">
+                <h3>Leader Details & Small Groups</h3>
+                <div class="form-group"><input type="number" id="ldr-find-id" placeholder="Leader ID"></div>
+                <div style="display:flex; gap:10px;">
+                    <button class="btn btn-primary" onclick="findLeader()">Get Details</button>
+                    <button class="btn btn-secondary" onclick="findLeaderGroup()">Get Group Info</button>
+                </div>
+                <div id="ldr-result" class="json-box" style="margin-top:10px;"></div>
+            </div>
+
+            <div class="card">
+                <h3>Update Leader</h3>
+                <div class="form-group"><input type="number" id="ldr-upd-id" placeholder="Leader ID"></div>
+                <div class="form-group"><input type="number" id="ldr-salary" placeholder="Salary"></div>
+                <div class="form-group"><input type="text" id="ldr-date" placeholder="Date Joined (YYYY-MM-DD)"></div>
+                <div style="display:flex; gap:10px;">
+                    <button class="btn btn-primary" onclick="updateLeader()">Update</button>
+                    <button class="btn btn-danger" onclick="deleteLeader()">Delete</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="events" class="view-section">
+        <div class="card">
+            <div style="display:flex; justify-content:space-between;">
+                <h2>Events List (MySQL)</h2>
+                <button class="btn btn-primary" onclick="loadEvents()">Refresh</button>
+            </div>
+            <div class="table-container">
+                <table id="table-events">
+                    <thead><tr><th>Desc</th><th>Start</th><th>End</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="grid-2">
+            <div class="card">
+                <h3>Create Event (MySQL + Mongo)</h3>
+                <div class="form-group"><input type="text" id="evt-desc" placeholder="Description"></div>
+                <div class="form-group"><input type="datetime-local" id="evt-start"></div>
+                <div class="form-group"><input type="datetime-local" id="evt-end"></div>
+                <div class="form-group"><input type="number" id="evt-venue" value="1" placeholder="Venue ID"></div>
+                <div class="form-group">
+                    <textarea id="evt-custom" rows="2" placeholder='Custom Fields (JSON): {"theme": "fun"}'></textarea>
+                </div>
+                <button class="btn btn-success" onclick="createEvent()">Create New Event</button>
+                <hr>
+                <h3>Update/Delete (MySQL)</h3>
+                <div class="form-group"><input type="number" id="evt-id" placeholder="Event ID"></div>
+                <div style="display:flex; gap:10px;">
+                    <button class="btn btn-primary" onclick="updateEvent()">Update (Uses fields above)</button>
+                    <button class="btn btn-danger" onclick="deleteEvent()">Delete Event</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>Event Queries</h3>
+                <div class="form-group"><input type="number" id="evt-q-id" placeholder="Event ID"></div>
+                <div style="display:flex; gap:5px; flex-wrap:wrap;">
+                    <button class="btn btn-secondary" onclick="getEventDetails()">Detail</button>
+                    <button class="btn btn-secondary" onclick="getEventAttendance()">MySQL Attendance</button>
+                </div>
+                <div id="evt-result" class="json-box" style="margin-top:10px; height:100px;"></div>
+
+                <h3 style="margin-top:1.5rem;">Redis Cache Operations</h3>
+                <p style="font-size:0.8rem; color:#666;">Manage attendance cache for high performance.</p>
+                <div style="display:flex; gap:5px; flex-wrap:wrap;">
+                    <button class="btn btn-primary" onclick="redisLoad()">Load to Redis</button>
+                    <button class="btn btn-primary" onclick="redisUpdate()">Update Cache</button>
+                    <button class="btn btn-danger" onclick="redisDelete()">Clear Cache</button>
+                    <button class="btn btn-success" onclick="redisFetch()">Fetch from Redis</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="camps" class="view-section">
+        <div class="card">
+            <div style="display:flex; justify-content:space-between;">
+                <h2>Camps</h2>
+                <button class="btn btn-primary" onclick="loadCamps()">Refresh</button>
+            </div>
+            <div class="table-container">
+                <table id="table-camps">
+                    <thead><tr><th>ID</th><th>Description</th><th>Venue</th><th>Start</th><th>End</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="grid-2">
+            <div class="card">
+                <h3>Manage Camps</h3>
+                <div class="form-group"><input type="number" id="cmp-id" placeholder="Camp ID (for Update/Delete)"></div>
+                <div class="form-group"><input type="text" id="cmp-desc" placeholder="Description"></div>
+                <div class="form-group"><input type="datetime-local" id="cmp-start"></div>
+                <div class="form-group"><input type="datetime-local" id="cmp-end"></div>
+                <div class="form-group"><input type="number" id="cmp-venue" placeholder="Venue ID (Create Only)"></div>
+                <div style="display:flex; gap:10px; margin-top:1rem;">
+                    <button class="btn btn-success" onclick="createCamp()">Create</button>
+                    <button class="btn btn-primary" onclick="updateCamp()">Update</button>
+                    <button class="btn btn-danger" onclick="deleteCamp()">Delete</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>Camp Queries</h3>
+                <div class="form-group"><input type="number" id="cmp-q-id" placeholder="Camp ID"></div>
+                <div class="form-group"><input type="number" id="cmp-q-std-id" placeholder="Student ID (for history)"></div>
+                <div style="display:flex; gap:5px; flex-wrap:wrap;">
+                    <button class="btn btn-secondary" onclick="getCampDetails()">Camp Detail</button>
+                    <button class="btn btn-secondary" onclick="getCampRegs()">Registrations (By Camp ID)</button>
+                    <button class="btn btn-secondary" onclick="getStudentCampRegs()">Student History (By Student ID)</button>
+                </div>
+                <div id="cmp-result" class="json-box" style="margin-top:10px;"></div>
+            </div>
+        </div>
+    </section>
+
+    <section id="venues" class="view-section">
+        <div class="card">
+            <div style="display:flex; justify-content:space-between;">
+                <h2>Venues</h2>
+                <button class="btn btn-primary" onclick="loadVenues()">Refresh</button>
+            </div>
+            <div class="table-container">
+                <table id="table-venues">
+                    <thead><tr><th>Address</th><th>Description</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>Manage Venue</h3>
+            <div class="grid-2">
+                <div>
+                    <div class="form-group"><input type="number" id="ven-id" placeholder="Venue ID"></div>
+                    <div style="display:flex; gap:10px;">
+                        <button class="btn btn-secondary" onclick="getVenueDetail()">Get Detail</button>
+                        <button class="btn btn-danger" onclick="deleteVenue()">Delete</button>
+                    </div>
+                </div>
+                <div>
+                    <div class="form-group"><input type="text" id="ven-addr" placeholder="Address"></div>
+                    <div class="form-group"><input type="text" id="ven-desc" placeholder="Description"></div>
+                    <button class="btn btn-primary" onclick="updateVenue()">Update</button>
+                </div>
+            </div>
+            <div id="ven-result" class="json-box" style="margin-top:10px;"></div>
+        </div>
+    </section>
+
+</main>
+
+<script>
+    const API_URL = "http://localhost:8001/graphql";
+
+    // --- Helpers ---
+    function switchTab(id) {
+        document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('nav button').forEach(el => el.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        event.currentTarget.classList.add('active');
+    }
+
+    async function gql(query, variables = {}) {
+        try {
+            const res = await fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ query, variables })
+            });
+            const json = await res.json();
+            if (json.errors) {
+                alert("GraphQL Error: " + json.errors[0].message);
+                console.error(json.errors);
+                return null;
+            }
+            return json.data;
+        } catch (e) {
+            alert("Network Error");
+            console.error(e);
+            return null;
+        }
+    }
+
+    function renderTable(id, rows, mapper) {
+        const tbody = document.querySelector(`#${id} tbody`);
+        tbody.innerHTML = rows.map(mapper).join('');
+    }
+
+    function showJson(id, data) {
+        document.getElementById(id).innerText = JSON.stringify(data, null, 2);
+    }
+
+    function getVal(id) { return document.getElementById(id).value; }
+    function getInt(id) { return parseInt(document.getElementById(id).value) || 0; }
+
+    // --- STUDENTS ---
+    async function loadStudents() {
+        const data = await gql(`query { students { studentName email phoneNumber smallGroupName parentName } }`);
+        if (data) renderTable('table-students', data.students, s => `
+            <tr><td>${s.studentName}</td><td>${s.email}</td><td>${s.phoneNumber}</td>
+            <td>${s.smallGroupName}</td><td>${s.parentName}</td></tr>`);
+    }
+
+    async function findStudent() {
+        const id = getInt('std-find-id');
+        const data = await gql(`query($id: Int!) { student(studentId: $id) { studentName email note parentName } }`, {id});
+        if (data) showJson('std-result', data.student);
+    }
+
+    async function updateStudent() {
+        const input = { email: getVal('std-upd-email') || null, phoneNumber: getVal('std-upd-phone') || null, note: getVal('std-upd-note') || null };
+        const data = await gql(`mutation($id: Int!, $inp: StudentUpdateInput!) { updateStudent(studentId: $id, input: $inp) }`, { id: getInt('std-upd-id'), inp: input });
+        if(data) alert(data.updateStudent);
+    }
+
+    async function deleteStudent() {
+        if(!confirm("Are you sure?")) return;
+        const data = await gql(`mutation($id: Int!) { deleteStudent(studentId: $id) }`, { id: getInt('std-upd-id') });
+        if(data) alert(data.deleteStudent);
+    }
+
+    // --- PARENTS ---
+    async function loadParents() {
+        const data = await gql(`query { parents { parentId parentName email phoneNumber students } }`);
+        if (data) renderTable('table-parents', data.parents, p => `
+            <tr><td>${p.parentId}</td><td>${p.parentName}</td><td>${p.email}</td><td>${p.phoneNumber}</td>
+            <td>${p.students.join(', ')}</td></tr>`);
+    }
+
+    async function updateParent() {
+        const input = { email: getVal('par-email') || null, phoneNumber: getVal('par-phone') || null, note: getVal('par-note') || null };
+        const data = await gql(`mutation($id: Int!, $inp: ParentUpdateInput!) { updateParent(parentId: $id, input: $inp) }`, { id: getInt('par-id'), inp: input });
+        if(data) alert(data.updateParent);
+    }
+
+    async function deleteParent() {
+        if(!confirm("Are you sure?")) return;
+        const data = await gql(`mutation($id: Int!) { deleteParent(parentId: $id) }`, { id: getInt('par-id') });
+        if(data) alert(data.deleteParent);
+    }
+
+    // --- LEADERS ---
+    async function loadLeaders() {
+        const data = await gql(`query { leaders { leaderId leaderName smallGroupName email salary shifts { startTime endTime } } }`);
+        if (data) renderTable('table-leaders', data.leaders, l => `
+            <tr><td>${l.leaderId}</td><td>${l.leaderName}</td><td>${l.smallGroupName || '-'}</td>
+            <td>${l.email}</td><td>${l.salary}</td><td>${l.shifts.length} shifts</td></tr>`);
+    }
+
+    async function findLeader() {
+        const data = await gql(`query($id: Int!) { leader(leaderId: $id) { leaderName datejoined salary note } }`, {id: getInt('ldr-find-id')});
+        if(data) showJson('ldr-result', data.leader);
+    }
+
+    async function findLeaderGroup() {
+        const data = await gql(`query($id: Int!) { leaderSmallGroup(leaderId: $id) { smallGroupName meetingTime studentName } }`, {id: getInt('ldr-find-id')});
+        if(data) showJson('ldr-result', data.leaderSmallGroup);
+    }
+
+    async function updateLeader() {
+        const input = { salary: parseFloat(getVal('ldr-salary')) || null, datejoined: getVal('ldr-date') || null };
+        const data = await gql(`mutation($id: Int!, $inp: LeaderUpdateInput!) { updateLeader(leaderId: $id, input: $inp) }`, { id: getInt('ldr-upd-id'), inp: input });
+        if(data) alert(data.updateLeader);
+    }
+
+    async function deleteLeader() {
+        if(!confirm("Are you sure?")) return;
+        const data = await gql(`mutation($id: Int!) { deleteLeader(leaderId: $id) }`, { id: getInt('ldr-upd-id') });
+        if(data) alert(data.deleteLeader);
+    }
+
+    // --- EVENTS & REDIS ---
+    async function loadEvents() {
+        const data = await gql(`query { events { description StartTime EndTime } }`);
+        if(data) renderTable('table-events', data.events, e => `<tr><td>${e.description}</td><td>${e.StartTime}</td><td>${e.EndTime}</td></tr>`);
+    }
+
+    async function createEvent() {
+        const input = {
+            venueId: getInt('evt-venue'),
+            startTime: getVal('evt-start'),
+            endTime: getVal('evt-end'),
+            description: getVal('evt-desc'),
+            customFields: JSON.parse(getVal('evt-custom') || "{}")
+        };
+        const data = await gql(`mutation($inp: EventCreateInput!) { createMongoEvent(input: $inp) }`, { inp: input });
+        if(data) alert(data.createMongoEvent);
+    }
+
+    async function updateEvent() {
+        const input = { description: getVal('evt-desc') || null, startTime: getVal('evt-start') || null, endTime: getVal('evt-end') || null };
+        const data = await gql(`mutation($id: Int!, $inp: EventUpdateInput!) { updateEvent(eventId: $id, input: $inp) }`, { id: getInt('evt-id'), inp: input });
+        if(data) alert(data.updateEvent);
+    }
+
+    async function deleteEvent() {
+        if(!confirm("Are you sure?")) return;
+        const data = await gql(`mutation($id: Int!) { deleteEvent(eventId: $id) }`, { id: getInt('evt-id') });
+        if(data) alert(data.deleteEvent);
+    }
+
+    async function getEventDetails() {
+        const data = await gql(`query($id: Int!) { event(eventId: $id) { description StartTime VenueAdress } }`, {id: getInt('evt-q-id')});
+        if(data) showJson('evt-result', data.event);
+    }
+
+    async function getEventAttendance() {
+        const data = await gql(`query($id: Int!) { eventAttendance(eventId: $id) { studentId firstName lastName timestamp } }`, {id: getInt('evt-q-id')});
+        if(data) showJson('evt-result', data.eventAttendance);
+    }
+
+    // Redis
+    async function redisLoad() {
+        const data = await gql(`mutation($id: Int!) { loadRedisEventRegistration(eventId: $id) }`, { id: getInt('evt-q-id') });
+        if(data) alert(data.loadRedisEventRegistration);
+    }
+    async function redisUpdate() {
+        const data = await gql(`mutation($id: Int!) { updateRedisEventRegistration(eventId: $id) }`, { id: getInt('evt-q-id') });
+        if(data) alert(data.updateRedisEventRegistration);
+    }
+    async function redisDelete() {
+        const data = await gql(`mutation($id: Int!) { deleteRedisEventRegistration(eventId: $id) }`, { id: getInt('evt-q-id') });
+        if(data) alert(data.deleteRedisEventRegistration);
+    }
+    async function redisFetch() {
+        const data = await gql(`query($id: Int!) { redisEventRegistration(eventId: $id) { count success registrations { studentId firstName } } }`, { id: getInt('evt-q-id') });
+        if(data) showJson('evt-result', data.redisEventRegistration);
+    }
+
+    // --- CAMPS ---
+    async function loadCamps() {
+        const data = await gql(`query { camps { CampNumber Description VenueAddress StartTime EndTime } }`);
+        if(data) renderTable('table-camps', data.camps, c => `<tr><td>${c.CampNumber}</td><td>${c.Description}</td><td>${c.VenueAddress}</td><td>${c.StartTime}</td><td>${c.EndTime}</td></tr>`);
+    }
+
+    async function createCamp() {
+        const input = {
+            venueId: getInt('cmp-venue'), startTime: getVal('cmp-start'), endTime: getVal('cmp-end'), description: getVal('cmp-desc'), customFields: {}
+        };
+        const data = await gql(`mutation($inp: CampCreateInput!) { createMongoCamp(input: $inp) }`, { inp: input });
+        if(data) alert(data.createMongoCamp);
+    }
+
+    async function updateCamp() {
+        const input = { description: getVal('cmp-desc') || null, startTime: getVal('cmp-start') || null, endTime: getVal('cmp-end') || null };
+        const data = await gql(`mutation($id: Int!, $inp: CampUpdateInput!) { updateCamp(campId: $id, input: $inp) }`, { id: getInt('cmp-id'), inp: input });
+        if(data) alert(data.updateCamp);
+    }
+
+    async function deleteCamp() {
+        const data = await gql(`mutation($id: Int!) { deleteCamp(campId: $id) }`, { id: getInt('cmp-id') });
+        if(data) alert(data.deleteCamp);
+    }
+
+    async function getCampDetails() {
+        const data = await gql(`query($id: Int!) { camp(campId: $id) { description StartTime EndTime } }`, {id: getInt('cmp-q-id')});
+        if(data) showJson('cmp-result', data.camp);
+    }
+    async function getCampRegs() {
+        const data = await gql(`query($id: Int!) { campRegistration(campId: $id) { AmountPaid description VenueAdress } }`, {id: getInt('cmp-q-id')});
+        if(data) showJson('cmp-result', data.campRegistration);
+    }
+    async function getStudentCampRegs() {
+        const data = await gql(`query($id: Int!) { campRegistrationStudent(studentId: $id) { campId studentName amountPaid description } }`, {id: getInt('cmp-q-std-id')});
+        if(data) showJson('cmp-result', data.campRegistrationStudent);
+    }
+
+    // --- VENUES ---
+    async function loadVenues() {
+        const data = await gql(`query { venues { VenueAdress description } }`);
+        if(data) renderTable('table-venues', data.venues, v => `<tr><td>${v.VenueAdress}</td><td>${v.description}</td></tr>`);
+    }
+
+    async function getVenueDetail() {
+        const data = await gql(`query($id: Int!) { venue(venueId: $id) { VenueAdress description } }`, {id: getInt('ven-id')});
+        if(data) showJson('ven-result', data.venue);
+    }
+
+    async function updateVenue() {
+        const input = { address: getVal('ven-addr') || null, description: getVal('ven-desc') || null };
+        const data = await gql(`mutation($id: Int!, $inp: VenueUpdateInput!) { updateVenue(venueId: $id, input: $inp) }`, { id: getInt('ven-id'), inp: input });
+        if(data) alert(data.updateVenue);
+    }
+
+    async function deleteVenue() {
+        const data = await gql(`mutation($id: Int!) { deleteVenue(venueId: $id) }`, { id: getInt('ven-id') });
+        if(data) alert(data.deleteVenue);
+    }
+
+    // Init
+    loadStudents();
+</script>
+</body>
+</html>

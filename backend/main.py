@@ -13,9 +13,19 @@ from pymongo.server_api import ServerApi
 import os
 from strawberry.fastapi import GraphQLRouter
 from app_graphql.schema import schema, get_mysql_conn, get_redis_conn, get_mongo_conn, mongo_event_custom_values, setup_mongodb_indexes
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 load_dotenv()
+
+# Allows frontend to communicate with backend
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"], # Allows all for development
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # importing conn's from schema.py
 
