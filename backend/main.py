@@ -752,10 +752,10 @@ async def get_event(eventId: int):
             cursor.execute('''
                SELECT
                    e.id AS event_id,
-                   e.start_time AS StartTime,
-                   e.end_time AS EndTime,
-                   sa.student_id AS studentId,
-                   v.address as VenueAddress,
+                   e.start_time AS start_time,
+                   e.end_time AS end_time,
+                   sa.student_id AS student_id,
+                   v.address as address,
                    e.description AS description
                FROM Event e
                JOIN Venue v ON e.venue_id = v.id
@@ -914,7 +914,7 @@ async def delete_event(event_id: int):
     return {"message": "Event deleted successfully"}
 
 
-@app.get('/camp/')
+@app.get('/mongo/camp/')
 async def get_camps():
     try:
         conn = get_mysql_conn()
@@ -922,7 +922,7 @@ async def get_camps():
             cursor.execute('USE YouthGroup;')
             cursor.execute('''
                SELECT
-                   c.id as camp_id,
+                   v.id as venue_id,
                    e.start_time AS start_time,
                    e.end_time AS end_time,
                    e.description AS description
@@ -956,7 +956,7 @@ async def get_camps():
     return results
 
 
-@app.put('/camp/')
+@app.put('/mongo/camp/')
 async def update_camp(camp_id: int, payload: dict):
     camp_id = payload.get('camp_id')
     start_time = payload.get('start_time')
@@ -980,7 +980,7 @@ async def update_camp(camp_id: int, payload: dict):
     return {'message': 'Camp updated successfully'}
 
 
-@app.delete('/camp/')
+@app.delete('/mongo/camp/')
 async def delete_camp(camp_id: int):
     try:
         conn = get_mysql_conn()
@@ -1040,7 +1040,7 @@ async def get_camp(campId: int):
     return results
 
 
-@app.post('/camp')
+@app.post('/mongo/camp')
 async def create_camp(payload: dict):
     venue_id = payload.get('venue_id')
     start_time = payload.get('start_time')

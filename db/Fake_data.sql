@@ -1,5 +1,6 @@
 # FAKE DATA
 
+ALTER TABLE Event AUTO_INCREMENT = 1; # Prevents event from entering weird autoincrement
 USE YouthGroup;
 
 -- Parents (10)
@@ -38,21 +39,21 @@ INSERT INTO Venue (id, address, description) VALUES
 (3, '150 Youth Ln', 'Youth Room / Basement');
 
 -- Events (8)
-INSERT INTO Event (id, venue_id, start_time, end_time, description) VALUES
-(1, 1, '2025-06-01 18:00:00', '2025-06-01 20:00:00', 'Weekly Youth Gathering'),
-(2, 2, '2025-06-08 18:00:00', '2025-06-08 20:00:00', 'Service Night'),
-(3, 3, '2025-06-15 09:00:00', '2025-06-15 16:00:00', 'Day Retreat'),
-(4, 1, '2025-07-01 09:00:00', '2025-07-01 17:00:00', 'Summer Kickoff'),
-(5, 2, '2025-07-15 18:00:00', '2025-07-15 21:00:00', 'Volunteer Training'),
-(6, 3, '2025-08-01 08:00:00', '2025-08-07 17:00:00', 'Camp: Wilderness Adventure (week)'),
-(7, 3, '2025-08-10 08:00:00', '2025-08-12 17:00:00', 'Camp: Lakeside Weekend'),
-(8, 3, '2025-12-20 18:00:00', '2025-12-20 21:00:00', 'Christmas Youth Party');
+INSERT INTO Event (venue_id, start_time, end_time, description) VALUES
+( 1, '2025-06-01 18:00:00', '2025-06-01 20:00:00', 'Weekly Youth Gathering'),
+(2, '2025-06-08 18:00:00', '2025-06-08 20:00:00', 'Service Night'),
+( 3, '2025-06-15 09:00:00', '2025-06-15 16:00:00', 'Day Retreat'),
+(1, '2025-07-01 09:00:00', '2025-07-01 17:00:00', 'Summer Kickoff'),
+( 2, '2025-07-15 18:00:00', '2025-07-15 21:00:00', 'Volunteer Training'),
+( 3, '2025-08-01 08:00:00', '2025-08-07 17:00:00', 'Camp: Wilderness Adventure (week)'),
+( 3, '2025-08-10 08:00:00', '2025-08-12 17:00:00', 'Camp: Lakeside Weekend'),
+( 3, '2025-12-20 18:00:00', '2025-12-20 21:00:00', 'Christmas Youth Party');
 
 -- Camps (3) — camp.id MUST equal an event.id (camp is a subtype of event)
 INSERT INTO Camp (id) VALUES
 (6),
 (7),
-(8);
+(9);
 
 -- Small groups (5) — reference existing leaders
 INSERT INTO SmallGroup (id, name, leader_id, meeting_time) VALUES

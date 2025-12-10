@@ -219,7 +219,6 @@ class EventCreateInput:
 
 @strawberry.input
 class CampCreateInput:
-    date: str
     venue_id: int
     start_time: str
     end_time: str
@@ -1023,6 +1022,7 @@ class Mutation:
         mongo_client = get_mongo_conn()
         try:
             with mysql_conn.cursor() as cursor:
+                cursor.execute('USE YouthGroup;')
                 cursor.execute('''
                 INSERT INTO Event (venue_id, start_time, end_time, description)
                 VALUES (%s, %s, %s, %s);
@@ -1048,15 +1048,16 @@ class Mutation:
         mongo_client = get_mongo_conn()
         try:
             with mysql_conn.cursor() as cursor:
+                cursor.execute('USE YouthGroup;')
                 cursor.execute('''
                 INSERT INTO Event (venue_id, start_time, end_time, description)
                 VALUES (%s, %s, %s, %s);
                 ''', (input.venue_id, input.start_time, input.end_time, input.description))
                 mysql_conn.commit()
                 event_id = cursor.lastrowid
-                
+
                 cursor.execute('''
-                INSERT INTO CAMP (camp_id, event_id)
+                INSERT INTO Camp (camp_id, event_id)
                 VALUES (NULL, %s);
                 ''', (event_id,))
                 mysql_conn.commit()
