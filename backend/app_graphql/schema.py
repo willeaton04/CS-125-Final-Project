@@ -44,6 +44,11 @@ def mongo_event_custom_values():
     db = client['YouthGroup']
     return db['event_custom_values']
 
+def mongo_camp_custom_values():
+    client = get_mongo_conn()
+    db = client['YouthGroup']
+    return db['camp_custom_values']
+
 # Helps in sorting out and finding it instantly
 def setup_mongodb_indexes():
     """Setup MongoDB indexes for better performance. Run once during initialization."""
@@ -249,6 +254,18 @@ class CampCreateInput:
     end_time: str
     description: Optional[str] = None
     custom_fields: Optional[strawberry.scalars.JSON] = None
+
+@strawberry.input
+class CampUpdateInput:
+    start_time: Optional[str] = None
+    end_time: Optional[str] = None
+    description: Optional[str] = None
+    custom_fields: Optional[strawberry.scalars.JSON] = None
+
+@strawberry.input
+class VenueUpdateInput:
+    address: Optional[str] = None
+    description: Optional[str] = None
 
 @strawberry.type
 class Query:
@@ -1096,14 +1113,103 @@ class Mutation:
 
             db = mongo_client['YouthGroup']
             collection = db['camp_custom_values']
+
+            if collection.find_one({'event_id': event_id}):
+                raise Exception(f"Duplicate Error: Metadata for event_id {event_id} already exists in MongoDB.")
+
             collection.insert_one({
                 'event_id': event_id,
                 'custom_fields': input.custom_fields or {},
             })
 
             return f"Camp created with event_id: {event_id}"
+        except Exception as e:
+            return f"Error: duplicate value in MongoDB with id {event_id}: {e}"
         finally:
             mysql_conn.close()
             mongo_client.close()
+
+    @strawberry.field
+    def update_camp(self, camp_id: int, input: CampUpdateInput) -> str:
+        mysql_conn = get_mysql_conn()
+        try:
+            with mysql_conn.cursor() as cursor:
+                cursor.execute('USE YouthGroup;')
+                cursor.execute('''
+                UPDATE Event e
+                JOIN Camp c ON c.id = e.id
+                SET e.start_time = %s, e.end_time = %s, e.description = %s
+                WHERE c.id = %s;
+                ''', (input.start_time, input.end_time, input.description, camp_id))
+                mysql_conn.commit()
+                if cursor.rowcount == 0:
+                    return "Camp not found"
+
+            if input.custom_fields is not None:
+                try:
+                    mongo_camp_custom_values().update_one(
+                        {'camp_id': camp_id},
+                        {'$set': {'custom_fields': input.custom_fields}},
+                        upsert=True
+                    )
+                except Exception as e:
+                    print(f"MongoDB update warning: {e}")
+
+            return "Camp updated successfully"
+        finally:
+            mysql_conn.close()
+
+    @strawberry.field
+    def delete_camp(self, camp_id: int) -> str:
+        mysql_conn = get_mysql_conn()
+        try:
+            with mysql_conn.cursor() as cursor:
+                cursor.execute('USE YouthGroup;')
+                cursor.execute('DELETE FROM Camp WHERE id = %s;', (camp_id,))
+                mysql_conn.commit()
+                if cursor.rowcount == 0:
+                    return "Camp not found"
+
+            try:
+                mongo_camp_custom_values().delete_one({'camp_id': camp_id})
+            except Exception as e:
+                print(f"MongoDB delete warning: {e}")
+
+            return "Camp deleted successfully"
+        finally:
+            mysql_conn.close()
+
+    @strawberry.field
+    def update_venue(self, venue_id: int, input: VenueUpdateInput) -> str:
+        mysql_conn = get_mysql_conn()
+        try:
+            with mysql_conn.cursor() as cursor:
+                cursor.execute('USE YouthGroup;')
+                cursor.execute('''
+                UPDATE Venue
+                SET address = %s, description = %s
+                WHERE id = %s;
+                ''', (input.address, input.description, venue_id))
+                mysql_conn.commit()
+                if cursor.rowcount == 0:
+                    return "Venue not found"
+                return "Venue updated successfully"
+        finally:
+            mysql_conn.close()
+
+    @strawberry.field
+    def delete_venue(self, venue_id: int) -> str:
+        mysql_conn = get_mysql_conn()
+        try:
+            with mysql_conn.cursor() as cursor:
+                cursor.execute('USE YouthGroup;')
+                cursor.execute('DELETE FROM Venue WHERE id = %s;', (venue_id,))
+                mysql_conn.commit()
+                if cursor.rowcount == 0:
+                    return "Venue not found"
+                return "Venue deleted successfully"
+        finally:
+            mysql_conn.close()
+
 
 schema = strawberry.Schema(query=Query, mutation=Mutation)
