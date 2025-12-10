@@ -88,11 +88,15 @@ Our file contains two directories: Backend and Db
 # Backend
 This directory contains all the fields necessary for the backend knowledge. It holds the 
 logic that makes fetching, writing, reading, modifying and all other functionalities possible. Here are the files in the backend:
+
 - Main.py: Implements all the Mongo, Redis and Mysql's get, update and delete endpoints that makes fetching, updating and deleting information in the 
-database possible. 
+database possible. In total, it has 52 endpoints.
+
 - Dockerfile: Implements the docker containers by setting the work directory, installing dependencies, and running the API server. 
+
 - Requirements.txt: Serves as a standardized way to declare and manage the external packages and their 
-versions that this whole project depends on. 
+versions that this whole project depends on.
+
 - App_graphql: Contains schema.sql which is a GraphQl layer that sits on top og all the databases Mongo, Redis and MySql. The file defines the data types, displays how the data is supposed to be fetched, 
 shows how to write/modify data through mutations in 'Post/Put/Delete' requests and clarifies what data the client needs to send. 
 
