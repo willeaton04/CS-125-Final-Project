@@ -149,22 +149,9 @@
 <main>
 
     <section id="students" class="view-section active">
-        <div class="card">
-            <div style="display:flex; justify-content:space-between;">
-                <h2>All Students</h2>
-                <button class="btn btn-primary" onclick="loadStudents()">Refresh List</button>
-            </div>
-            <div class="table-container">
-                <table id="table-students">
-                    <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Group</th><th>Parent</th></tr></thead>
-                    <tbody></tbody>
-                </table>
-            </div>
-        </div>
-
         <div class="grid-2">
             <div class="card">
-                <h3>Find Student by ID</h3>
+                <h3>Find Student 🧍 by ID</h3>
                 <div class="form-group"><input type="number" id="std-find-id" placeholder="Student ID"></div>
                 <button class="btn btn-primary" onclick="findStudent()">Find</button>
                 <div id="std-result" class="json-box" style="margin-top:10px;"></div>
@@ -185,21 +172,9 @@
     </section>
 
     <section id="parents" class="view-section">
-        <div class="card">
-            <div style="display:flex; justify-content:space-between;">
-                <h2>All Parents</h2>
-                <button class="btn btn-primary" onclick="loadParents()">Refresh List</button>
-            </div>
-            <div class="table-container">
-                <table id="table-parents">
-                    <thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Phone</th><th>Children</th></tr></thead>
-                    <tbody></tbody>
-                </table>
-            </div>
-        </div>
 
         <div class="card">
-            <h3>Manage Parent</h3>
+            <h3>Manage Parent👪</h3>
             <div class="grid-2">
                 <div>
                     <label>Parent ID</label>
@@ -222,22 +197,10 @@
     </section>
 
     <section id="leaders" class="view-section">
-        <div class="card">
-            <div style="display:flex; justify-content:space-between;">
-                <h2>Leaders</h2>
-                <button class="btn btn-primary" onclick="loadLeaders()">Refresh</button>
-            </div>
-            <div class="table-container">
-                <table id="table-leaders">
-                    <thead><tr><th>ID</th><th>Name</th><th>Group</th><th>Email</th><th>Salary</th><th>Shifts</th></tr></thead>
-                    <tbody></tbody>
-                </table>
-            </div>
-        </div>
 
         <div class="grid-2">
             <div class="card">
-                <h3>Leader Details & Small Groups</h3>
+                <h3>Leader Details & Small Groups 👬</h3>
                 <div class="form-group"><input type="number" id="ldr-find-id" placeholder="Leader ID"></div>
                 <div style="display:flex; gap:10px;">
                     <button class="btn btn-primary" onclick="findLeader()">Get Details</button>
@@ -260,18 +223,6 @@
     </section>
 
     <section id="events" class="view-section">
-        <div class="card">
-            <div style="display:flex; justify-content:space-between;">
-                <h2>Events List (MySQL)</h2>
-                <button class="btn btn-primary" onclick="loadEvents()">Refresh</button>
-            </div>
-            <div class="table-container">
-                <table id="table-events">
-                    <thead><tr><th>Desc</th><th>Start</th><th>End</th></tr></thead>
-                    <tbody></tbody>
-                </table>
-            </div>
-        </div>
 
         <div class="grid-2">
             <div class="card">
@@ -315,22 +266,10 @@
     </section>
 
     <section id="camps" class="view-section">
-        <div class="card">
-            <div style="display:flex; justify-content:space-between;">
-                <h2>Camps</h2>
-                <button class="btn btn-primary" onclick="loadCamps()">Refresh</button>
-            </div>
-            <div class="table-container">
-                <table id="table-camps">
-                    <thead><tr><th>ID</th><th>Description</th><th>Venue</th><th>Start</th><th>End</th></tr></thead>
-                    <tbody></tbody>
-                </table>
-            </div>
-        </div>
 
         <div class="grid-2">
             <div class="card">
-                <h3>Manage Camps</h3>
+                <h3>Manage Camps🏕️</h3>
                 <div class="form-group"><input type="number" id="cmp-id" placeholder="Camp ID (for Update/Delete)"></div>
                 <div class="form-group"><input type="text" id="cmp-desc" placeholder="Description"></div>
                 <div class="form-group"><input type="datetime-local" id="cmp-start"></div>
@@ -358,21 +297,9 @@
     </section>
 
     <section id="venues" class="view-section">
-        <div class="card">
-            <div style="display:flex; justify-content:space-between;">
-                <h2>Venues</h2>
-                <button class="btn btn-primary" onclick="loadVenues()">Refresh</button>
-            </div>
-            <div class="table-container">
-                <table id="table-venues">
-                    <thead><tr><th>Address</th><th>Description</th></tr></thead>
-                    <tbody></tbody>
-                </table>
-            </div>
-        </div>
 
         <div class="card">
-            <h3>Manage Venue</h3>
+            <h3>Manage Venue 🏘️</h3>
             <div class="grid-2">
                 <div>
                     <div class="form-group"><input type="number" id="ven-id" placeholder="Venue ID"></div>
@@ -446,10 +373,32 @@
     }
 
     async function findStudent() {
-        const id = getInt('std-find-id');
-        const data = await gql(`query($id: Int!) { student(studentId: $id) { studentName email note parentName } }`, {id});
-        if (data) showJson('std-result', data.student);
+    const id = getInt('std-find-id');
+    const data = await gql(`query($id: Int!) { student(studentId: $id) { studentName email note parentName smallGroupLeaderName phoneNumber smallGroupName } }`, {id});
+
+    if (data && data.student) {
+        const s = data.student;
+        document.getElementById('std-result').innerHTML = `
+            <div style="background: white; padding: 1rem; border-radius: 8px; color: #2d3748;">
+                <h4 style="margin-top: 0; color: var(--primary); border-bottom: 2px solid var(--border); padding-bottom: 0.5rem;">
+                    👤 ${s.studentName}
+                </h4>
+                <div style="display: grid; gap: 0.5rem; font-size: 0.9rem;">
+                    <p><strong>Email:</strong> ${s.email || 'N/A'}</p>
+                    <p><strong>Phone:</strong> ${s.phoneNumber || 'N/A'}</p>
+                    <p><strong>Parent:</strong> ${s.parentName || 'N/A'}</p>
+                    <p><strong>Small Group:</strong> ${s.smallGroupName || 'N/A'}</p>
+                    <p><strong>Leader:</strong> ${s.smallGroupLeaderName || 'N/A'}</p>
+                    ${s.note ? `<p><strong>Note:</strong> ${s.note}</p>` : ''}
+                </div>
+            </div>
+        `;
+    } else {
+        document.getElementById('std-result').innerHTML = `
+            <div style="color: #e53e3e; padding: 1rem;">Student not found</div>
+        `;
     }
+}
 
     async function updateStudent() {
         const input = { email: getVal('std-upd-email') || null, phoneNumber: getVal('std-upd-phone') || null, note: getVal('std-upd-note') || null };
