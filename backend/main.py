@@ -59,7 +59,6 @@ async def startup_event():
 #     REDIS ENDPOINTS
 # ======================
 
-
 @app.post('/redis/event/registration/{event_id}')
 async def load_student_event_reg(event_id: int):
     try:
@@ -319,6 +318,7 @@ async def delete_student_event_reg(event_id: int):
             decoded_keys = [
                 k.decode() if isinstance(k, bytes) else k
                 for k in student_keys
+                if k is not None
             ]
 
             # Delete all hashes at once
