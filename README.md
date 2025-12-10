@@ -8,7 +8,9 @@ Who’s using this?
 What do they want to do?
 - Take attendance 
 - Finances (who has paid for ...)
-- Registration
+- Registration for several events 
+- Leaders are able to access their shifts 
+- The database should display event information 
 
 What should they be able to do? 
 - Take attendance 
@@ -17,7 +19,8 @@ What should they be able to do?
 - Description of youth members
 - Keep track of students, leaders and volunteers
 
-Assumptions: - We only record one parent per each student, event refers to every event that happens at the Church while camp means every event that happens outdoor 
+Assumptions: - We only record one parent per each student
+
 What shouldn’t they do?
 
 
@@ -34,9 +37,6 @@ Create the repository ✅
 4. FrontEnd 
 5. Full stack
 
-# This week (20th Nov - 25th Nov )
-1. Nice: Schema sql✅, generate fake data✅, two other end points ✅ 
-2. Will: End points✅, container ✅
 ---
 
 ## Setup
@@ -81,4 +81,22 @@ chmod +x build-services.sh && ./build-services.sh
 +--------------------------------------------------+
 ```
 
+## Files Infrastructure  
 
+Our file contains two directories: Backend and Db 
+
+# Backend
+This directory contains all the fields necessary for the backend knowledge. It holds the 
+logic that makes fetching, writing, reading, modifying and all other functionalities possible. Here are the files in the backend:
+- Main.py: Implements all the Mongo, Redis and Mysql's get, update and delete endpoints that makes fetching, updating and deleting information in the 
+database possible. 
+- Dockerfile: Implements the docker containers by setting the work directory, installing dependencies, and running the API server. 
+- Requirements.txt: Serves as a standardized way to declare and manage the external packages and their 
+versions that this whole project depends on. 
+- App_graphql: Contains schema.sql which is a GraphQl layer that sits on top og all the databases Mongo, Redis and MySql. The file defines the data types, displays how the data is supposed to be fetched, 
+shows how to write/modify data through mutations in 'Post/Put/Delete' requests and clarifies what data the client needs to send. 
+
+# Db 
+This directory has the visual ER diagram implemented, and also contains the fake data that was generated with the help of CHATGPT. 
+
+# Front End 
