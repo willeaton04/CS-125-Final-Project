@@ -1,6 +1,6 @@
-## CS-125-Final-Project
+# CS-125-Final-Project
 
-## Prerequsite 
+# Prerequsite 
 
 Who’s using this?
 - Leaders: Administration (distinguish roles) 
@@ -30,7 +30,7 @@ Nice Will
 Create the repository ✅
 
 
-## Goals 
+# Goals 
 1. Conceptual Design
 2. Logical design 
 3. BackEnd
@@ -39,7 +39,7 @@ Create the repository ✅
 
 ---
 
-## Setup
+# Setup
 To set docker services run this command:
 
 > NOTE: ensure docker desktop is installed on your computer
@@ -49,7 +49,7 @@ chmod +x build-services.sh && ./build-services.sh
 ```
 
 ---
-## Infra
+# Infra
 
 - All docker containers are managed under docker compose.
 
@@ -81,7 +81,7 @@ chmod +x build-services.sh && ./build-services.sh
 +--------------------------------------------------+
 ```
 
-# Files Infrastructure  
+# Detailed File Infrastructure  
 
 Our file contains two directories: Backend and Db 
 
