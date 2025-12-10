@@ -211,8 +211,6 @@ class EventUpdateInput:
 
 @strawberry.input
 class EventCreateInput:
-    event_id: int
-    date: str
     venue_id: int
     start_time: str
     end_time: str
@@ -1026,9 +1024,9 @@ class Mutation:
         try:
             with mysql_conn.cursor() as cursor:
                 cursor.execute('''
-                INSERT INTO Event (event_type_id, venue_id, start_time, end_time, description)
-                VALUES (%s, %s, %s, %s, %s);
-                ''', (input.event_id, input.venue_id, input.start_time, input.end_time, input.description))
+                INSERT INTO Event (venue_id, start_time, end_time, description)
+                VALUES (%s, %s, %s, %s);
+                ''', (input.venue_id, input.start_time, input.end_time, input.description))
                 mysql_conn.commit()
                 event_id = cursor.lastrowid
 
