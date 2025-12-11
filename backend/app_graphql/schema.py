@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+
 def get_mysql_conn():
     return pymysql.connect(
         host=os.getenv('MYSQL_HOST'),
@@ -19,6 +20,7 @@ def get_mysql_conn():
         cursorclass=pymysql.cursors.DictCursor
     )
 
+
 def get_redis_conn():
     return redis.Redis(
         host=os.getenv('REDIS_ENDPOINT'),
@@ -28,7 +30,9 @@ def get_redis_conn():
         password=os.getenv('REDIS_PASSWORD')
     )
 
+
 _mongo_client = None
+
 
 def get_mongo_conn():
     global _mongo_client
@@ -39,15 +43,18 @@ def get_mongo_conn():
         )
     return _mongo_client
 
+
 def mongo_event_custom_values():
     client = get_mongo_conn()
     db = client['YouthGroup']
     return db['event_custom_values']
 
+
 def mongo_camp_custom_values():
     client = get_mongo_conn()
     db = client['YouthGroup']
     return db['camp_custom_values']
+
 
 # Helps in sorting out and finding it instantly
 def setup_mongodb_indexes():
@@ -70,6 +77,7 @@ class Student:
     phone_number: str
     note: str
 
+
 @strawberry.type
 class Parent:
     parent_id: int
@@ -79,10 +87,12 @@ class Parent:
     note: str
     students: List[str]
 
+
 @strawberry.type
 class Shift:
     start_time: str
     end_time: str
+
 
 @strawberry.type
 class Leader:
@@ -96,11 +106,13 @@ class Leader:
     note: str
     shifts: List[Shift]
 
+
 @strawberry.type
 class Event:
     StartTime: str
     EndTime: str
     description: str
+
 
 @strawberry.type
 class EventDetail:
@@ -109,6 +121,7 @@ class EventDetail:
     studentId: int
     VenueAdress: str
     description: str
+
 
 @strawberry.type
 class Camp:
@@ -119,6 +132,7 @@ class Camp:
     VenueDescription: Optional[str]
     VenueAddress: str
 
+
 @strawberry.type
 class CampDetail:
     CampNumber: int
@@ -126,15 +140,18 @@ class CampDetail:
     EndTime: str
     description: str
 
+
 @strawberry.type
 class Venue:
     VenueAdress: str
     description: str
 
+
 @strawberry.type
 class VenueDetail:
     VenueAdress: str
     description: str
+
 
 @strawberry.type
 class CampRegistration:
@@ -143,11 +160,13 @@ class CampRegistration:
     description: str
     VenueAdress: str
 
+
 @strawberry.type
 class SmallGroupInfo:
     small_group_name: str
     meeting_time: str
     student_name: str
+
 
 @strawberry.type
 class EventAttendance:
@@ -166,6 +185,7 @@ class EventAttendance:
     timestamp: str
     note: str
 
+
 @strawberry.type
 class CampRegistrationDetail:
     student_name: str
@@ -176,8 +196,10 @@ class CampRegistrationDetail:
     description: str
     venue_address: str
 
+
 import strawberry
 from typing import List, Optional
+
 
 @strawberry.type
 class RedisEventRegistration:
@@ -196,6 +218,7 @@ class RedisEventRegistration:
     timestamp: str
     note: str
 
+
 @strawberry.type
 class RedisEventRegistrationResponse:
     event_id: int
@@ -203,6 +226,7 @@ class RedisEventRegistrationResponse:
     registrations: List[RedisEventRegistration] = strawberry.field(default_factory=list)  # ✅ Correct
     message: Optional[str] = None
     success: bool
+
 
 @strawberry.input
 class StudentUpdateInput:
@@ -214,6 +238,7 @@ class StudentUpdateInput:
     small_group_name: Optional[str] = None
     small_group_leader_name: Optional[str] = None
 
+
 @strawberry.input
 class ParentUpdateInput:
     email: Optional[str] = None
@@ -221,6 +246,7 @@ class ParentUpdateInput:
     note: Optional[str] = None
     student_name: Optional[str] = None
     parent_name: Optional[str] = None
+
 
 @strawberry.input
 class LeaderUpdateInput:
@@ -233,11 +259,13 @@ class LeaderUpdateInput:
     start_time: Optional[str] = None
     end_time: Optional[str] = None
 
+
 @strawberry.input
 class EventUpdateInput:
     description: Optional[str] = None
     start_time: Optional[str] = None
     end_time: Optional[str] = None
+
 
 @strawberry.input
 class EventCreateInput:
@@ -247,6 +275,7 @@ class EventCreateInput:
     description: Optional[str] = None
     custom_fields: Optional[strawberry.scalars.JSON] = None
 
+
 @strawberry.input
 class CampCreateInput:
     venue_id: int
@@ -255,6 +284,7 @@ class CampCreateInput:
     description: Optional[str] = None
     custom_fields: Optional[strawberry.scalars.JSON] = None
 
+
 @strawberry.input
 class CampUpdateInput:
     start_time: Optional[str] = None
@@ -262,10 +292,12 @@ class CampUpdateInput:
     description: Optional[str] = None
     custom_fields: Optional[strawberry.scalars.JSON] = None
 
+
 @strawberry.input
 class VenueUpdateInput:
     address: Optional[str] = None
     description: Optional[str] = None
+
 
 @strawberry.type
 class Query:
@@ -339,7 +371,7 @@ class Query:
                 ORDER BY p.id;
                 ''')
                 rows = cursor.fetchall()
-                
+
                 parents = {}
                 for row in rows:
                     pid = row["parent_id"]
@@ -353,7 +385,7 @@ class Query:
                             "students": []
                         }
                     parents[pid]["students"].append(row["student_name"])
-                
+
                 return [Parent(**parent) for parent in parents.values()]
         finally:
             conn.close()
@@ -382,7 +414,7 @@ class Query:
                 LEFT JOIN Shift s ON ls.shift_id = s.id;
                 ''')
                 rows = cursor.fetchall()
-                
+
                 leaders = {}
                 for row in rows:
                     lid = row["leader_id"]
@@ -398,13 +430,13 @@ class Query:
                             "note": row["note"],
                             "shifts": []
                         }
-                    
+
                     if row["shift_start"] and row["shift_end"]:
                         leaders[lid]["shifts"].append(Shift(
                             start_time=str(row["shift_start"]),
                             end_time=str(row["shift_end"])
                         ))
-                
+
                 return [Leader(**leader) for leader in leaders.values()]
         finally:
             conn.close()
@@ -434,10 +466,10 @@ class Query:
                 WHERE l.id = %s;
                 ''', (leader_id,))
                 rows = cursor.fetchall()
-                
+
                 if not rows:
                     return None
-                
+
                 leader_data = {
                     "leader_id": rows[0]["leader_id"],
                     "leader_name": rows[0]["leader_name"],
@@ -449,14 +481,14 @@ class Query:
                     "note": rows[0]["note"],
                     "shifts": []
                 }
-                
+
                 for row in rows:
                     if row["shift_start"] and row["shift_end"]:
                         leader_data["shifts"].append(Shift(
                             start_time=str(row["shift_start"]),
                             end_time=str(row["shift_end"])
                         ))
-                
+
                 return Leader(**leader_data)
         finally:
             conn.close()
@@ -477,7 +509,8 @@ class Query:
                 JOIN StudentAttendance sa ON sa.event_id = e.id;
                 ''')
                 results = cursor.fetchall()
-                return [Event(StartTime=str(r["StartTime"]), EndTime=str(r["EndTime"]), description=r["description"]) for r in results]
+                return [Event(StartTime=str(r["StartTime"]), EndTime=str(r["EndTime"]), description=r["description"])
+                        for r in results]
         finally:
             conn.close()
 
@@ -734,7 +767,7 @@ class Query:
         redis_conn = get_redis_conn()
         try:
             student_keys = redis_conn.smembers(f"event:{event_id}:students")
-            
+
             if not student_keys:
                 return RedisEventRegistrationResponse(
                     event_id=event_id,
@@ -748,13 +781,13 @@ class Query:
             for key in student_keys:
                 key = key.decode() if isinstance(key, bytes) else key
                 raw_data = redis_conn.hgetall(key)
-                
+
                 formatted_data = {
                     k.decode() if isinstance(k, bytes) else k:
-                    v.decode() if isinstance(v, bytes) else v
+                        v.decode() if isinstance(v, bytes) else v
                     for k, v in raw_data.items()
                 }
-                
+
                 for numeric_field in ["event_id", "venue_id", "student_id", "parent_id", "small_group_id"]:
                     if numeric_field in formatted_data and formatted_data[numeric_field].isdigit():
                         formatted_data[numeric_field] = int(formatted_data[numeric_field])
@@ -786,6 +819,7 @@ class Query:
         finally:
             redis_conn.close()
 
+<<<<<<< Updated upstream
     @strawberry.field
     def parent(self, parent_id: int) -> Optional[Parent]:
         conn = get_mysql_conn()
@@ -825,6 +859,8 @@ class Query:
                 return Parent(**parent_data)
         finally:
             conn.close()
+=======
+>>>>>>> Stashed changes
 
 @strawberry.type
 class Mutation:

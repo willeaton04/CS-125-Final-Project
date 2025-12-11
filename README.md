@@ -92,10 +92,16 @@ database possible. In total, it has 52 endpoints.
 - Requirements.txt: Serves as a standardized way to declare and manage the external packages and their 
 versions that this whole project depends on.
 
-- App_graphql: Contains schema.sql which is a GraphQl layer that sits on top og all the databases Mongo, Redis and MySql. The file defines the data types, displays how the data is supposed to be fetched, 
-shows how to write/modify data through mutations in 'Post/Put/Delete' requests and clarifies what data the client needs to send. 
+- App_graphql: Contains schema.sql which is a GraphQl layer that sits on top of all the databases Mongo, Redis and MySql. The file is divided into three main sections:
+1. Strawberry types: It defines the data types within each entity which makes it easy for the users to know which type is which event. 
+2. Queries: These functions are responsible for displaying the data like 'show me all students' or 'Find student #10'. It is done by hitting my sql 
+, get all students and then returning them.
+3. Mutations: Responsible for updating and deleting any data which makes our UI/UX so easy to do such a thing. After deleting, it does a good job of sending the notification that a particular
+field was deleted or updated. 
+ 
 
 # Db 
 This directory has the visual ER diagram implemented, and also contains the fake data that was generated with the help of CHATGPT. 
 
 # Front End 
+Front ends holds an index.html file 
