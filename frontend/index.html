@@ -925,21 +925,22 @@
 
     // PARENTS
     async function findParent() {
-        const id = getInt('par-find-id');
-        if (!id) {
-            showToast('error', 'Validation Error', 'Please enter a parent ID');
-            return;
-        }
+    const id = getInt('par-find-id');
+    if (!id) {
+        showToast('error', 'Validation Error', 'Please enter a parent ID');
+        return;
+    }
 
-        setLoading('par-find-btn', true);
-        const data = await gql(`query($id: Int!) { parent(parentId: $id) { parentName email phoneNumber note students } }`, {id});
-        setLoading('par-find-btn', false);
+    setLoading('par-find-btn', true);
+    const data = await gql(`query($id: Int!) { parents { parentId parentName email phoneNumber note students } }`, {});
+    setLoading('par-find-btn', false);
 
-        if (data && data.parent) {
-            const p = data.parent;
+    if (data && data.parents) {
+        const p = data.parents.find(parent => parent.parentId === id);
+        if (p) {
             document.getElementById('par-result').innerHTML = `
                 <div style="background: white; padding: 1rem; border-radius: 8px; color: #2d3748;">
-                    <h4 style="margin-top: 0; color: var(--primary); border-bottom: 2px solid var(--border); padding-bottom: 0.5rem;">${p.parentName}</h4>
+                    <h4 style="margin-top: 0; color: var(--primary); border-bottom: 2px solid var(--border); padding-bottom: 0.5rem; text-align: center;">👪 ${p.parentName}</h4>
                     <div style="display: grid; gap: 0.5rem; font-size: 0.9rem;">
                         <p><strong>Email:</strong> ${p.email || 'N/A'}</p>
                         <p><strong>Phone:</strong> ${p.phoneNumber || 'N/A'}</p>
@@ -952,7 +953,10 @@
         } else {
             document.getElementById('par-result').innerHTML = '<div style="color: #e53e3e; padding: 1rem;">Parent not found</div>';
         }
+    } else {
+        document.getElementById('par-result').innerHTML = '<div style="color: #e53e3e; padding: 1rem;">Parent not found</div>';
     }
+}
 
     async function updateParent() {
         const id = getInt('par-id');
@@ -997,39 +1001,78 @@
     }
 
     // LEADERS
-    async function findLeader() {
-        const id = getInt('ldr-find-id');
-        if (!id) {
-            showToast('error', 'Validation Error', 'Please enter a leader ID');
-            return;
-        }
-
-        setLoading('ldr-find-btn', true);
-        const data = await gql(`query($id: Int!) { leader(leaderId: $id) { leaderName datejoined salary note } }`, {id});
-        setLoading('ldr-find-btn', false);
-
-        if(data) {
-            showJson('ldr-result', data.leader);
-            showToast('success', 'Leader Found', 'Details displayed below');
-        }
+   async function findLeader() {
+    const id = getInt('ldr-find-id');
+    if (!id) {
+        showToast('error', 'Validation Error', 'Please enter a leader ID');
+        return;
     }
+
+    setLoading('ldr-find-btn', true);
+    const data = await gql(`query($id: Int!) { leader(leaderId: $id) { leaderName smallGroupName datejoined email phoneNumber salary note shifts { startTime endTime } } }`, {id});
+    setLoading('ldr-find-btn', false);
+
+    if(data && data.leader) {
+        const l = data.leader;
+        document.getElementById('ldr-result').innerHTML = `
+            <div style="background: white; padding: 1rem; border-radius: 8px; color: #2d3748;">
+                <h4 style="margin-top: 0; color: var(--primary); border-bottom: 2px solid var(--border); padding-bottom: 0.5rem; text-align: center;">👨‍🏫 ${l.leaderName}</h4>
+                <div style="display: grid; gap: 0.5rem; font-size: 0.9rem;">
+                    <p><strong>Email:</strong> ${l.email || 'N/A'}</p>
+                    <p><strong>Phone:</strong> ${l.phoneNumber || 'N/A'}</p>
+                    <p><strong>Small Group:</strong> ${l.smallGroupName || 'N/A'}</p>
+                    <p><strong>Date Joined:</strong> ${l.datejoined || 'N/A'}</p>
+                    <p><strong>Salary:</strong> $${l.salary || 'N/A'}</p>
+                    ${l.note ? `<p><strong>Note:</strong> ${l.note}</p>` : ''}
+                    ${l.shifts && l.shifts.length > 0 ? `
+                        <p><strong>Shifts:</strong></p>
+                        <ul style="margin: 0.5rem 0; padding-left: 1.5rem;">
+                            ${l.shifts.map(s => `<li>${s.startTime} - ${s.endTime}</li>`).join('')}
+                        </ul>
+                    ` : '<p><strong>Shifts:</strong> None assigned</p>'}
+                </div>
+            </div>
+        `;
+        showToast('success', 'Leader Found', 'Details displayed below');
+    } else {
+        document.getElementById('ldr-result').innerHTML = '<div style="color: #e53e3e; padding: 1rem;">Leader not found</div>';
+    }
+}
 
     async function findLeaderGroup() {
-        const id = getInt('ldr-find-id');
-        if (!id) {
-            showToast('error', 'Validation Error', 'Please enter a leader ID');
-            return;
-        }
-
-        setLoading('ldr-group-btn', true);
-        const data = await gql(`query($id: Int!) { leaderSmallGroup(leaderId: $id) { smallGroupName meetingTime studentName } }`, {id});
-        setLoading('ldr-group-btn', false);
-
-        if(data) {
-            showJson('ldr-result', data.leaderSmallGroup);
-            showToast('success', 'Group Info Retrieved', 'Details displayed below');
-        }
+    const id = getInt('ldr-find-id');
+    if (!id) {
+        showToast('error', 'Validation Error', 'Please enter a leader ID');
+        return;
     }
+
+    setLoading('ldr-group-btn', true);
+    const data = await gql(`query($id: Int!) { leaderSmallGroup(leaderId: $id) { smallGroupName meetingTime studentName } }`, {id});
+    setLoading('ldr-group-btn', false);
+
+    if(data && data.leaderSmallGroup && data.leaderSmallGroup.length > 0) {
+        const groups = data.leaderSmallGroup;
+        const groupName = groups[0].smallGroupName;
+        const meetingTime = groups[0].meetingTime;
+
+        document.getElementById('ldr-result').innerHTML = `
+            <div style="background: white; padding: 1rem; border-radius: 8px; color: #2d3748;">
+                <h4 style="margin-top: 0; color: var(--primary); border-bottom: 2px solid var(--border); padding-bottom: 0.5rem; text-align: center;">👥 ${groupName}</h4>
+                <div style="display: grid; gap: 0.5rem; font-size: 0.9rem;">
+                    <p><strong>Meeting Time:</strong> ${meetingTime || 'N/A'}</p>
+                    <p><strong>Students:</strong></p>
+                    <ul style="margin: 0.5rem 0; padding-left: 1.5rem;">
+                        ${groups.map(g => `<li>${g.studentName}</li>`).join('')}
+                    </ul>
+                    <p style="margin-top: 0.5rem; color: #718096; font-size: 0.85rem;">Total: ${groups.length} student(s)</p>
+                </div>
+            </div>
+        `;
+        showToast('success', 'Group Info Retrieved', 'Details displayed below');
+    } else {
+        document.getElementById('ldr-result').innerHTML = '<div style="color: #e53e3e; padding: 1rem;">No small group found for this leader</div>';
+    }
+}
 
     async function updateLeader() {
         const id = getInt('ldr-upd-id');
@@ -1147,39 +1190,75 @@
         }
     }
 
-    async function getEventDetails() {
-        const id = getInt('evt-q-id');
-        if (!id) {
-            showToast('error', 'Validation Error', 'Please enter an event ID');
-            return;
-        }
-
-        setLoading('evt-detail-btn', true);
-        const data = await gql(`query($id: Int!) { event(eventId: $id) { description StartTime VenueAdress } }`, {id});
-        setLoading('evt-detail-btn', false);
-
-        if(data) {
-            showJson('evt-result', data.event);
-            showToast('success', 'Event Details', 'Retrieved successfully');
-        }
+    // EVENTS - Update getEventDetails()
+async function getEventDetails() {
+    const id = getInt('evt-q-id');
+    if (!id) {
+        showToast('error', 'Validation Error', 'Please enter an event ID');
+        return;
     }
+
+    setLoading('evt-detail-btn', true);
+    const data = await gql(`query($id: Int!) { event(eventId: $id) { description StartTime EndTime VenueAdress } }`, {id});
+    setLoading('evt-detail-btn', false);
+
+    if(data && data.event && data.event.length > 0) {
+        const e = data.event[0];
+        document.getElementById('evt-result').innerHTML = `
+            <div style="background: white; padding: 1rem; border-radius: 8px; color: #2d3748;">
+                <h4 style="margin-top: 0; color: var(--primary); border-bottom: 2px solid var(--border); padding-bottom: 0.5rem; text-align: center;">📅 Event Details</h4>
+                <div style="display: grid; gap: 0.5rem; font-size: 0.9rem;">
+                    <p><strong>Description:</strong> ${e.description || 'N/A'}</p>
+                    <p><strong>Start Time:</strong> ${e.StartTime || 'N/A'}</p>
+                    <p><strong>End Time:</strong> ${e.EndTime || 'N/A'}</p>
+                    <p><strong>Venue:</strong> ${e.VenueAdress || 'N/A'}</p>
+                </div>
+            </div>
+        `;
+        showToast('success', 'Event Details', 'Retrieved successfully');
+    } else {
+        document.getElementById('evt-result').innerHTML = '<div style="color: #e53e3e; padding: 1rem;">Event not found</div>';
+    }
+}
 
     async function getEventAttendance() {
-        const id = getInt('evt-q-id');
-        if (!id) {
-            showToast('error', 'Validation Error', 'Please enter an event ID');
-            return;
-        }
-
-        setLoading('evt-attend-btn', true);
-        const data = await gql(`query($id: Int!) { eventAttendance(eventId: $id) { studentId firstName lastName timestamp } }`, {id});
-        setLoading('evt-attend-btn', false);
-
-        if(data) {
-            showJson('evt-result', data.eventAttendance);
-            showToast('success', 'Attendance Retrieved', `${data.eventAttendance?.length || 0} records found`);
-        }
+    const id = getInt('evt-q-id');
+    if (!id) {
+        showToast('error', 'Validation Error', 'Please enter an event ID');
+        return;
     }
+
+    setLoading('evt-attend-btn', true);
+    const data = await gql(`query($id: Int!) { eventAttendance(eventId: $id) { studentId firstName lastName email phoneNumber timestamp note } }`, {id});
+    setLoading('evt-attend-btn', false);
+
+    if(data && data.eventAttendance && data.eventAttendance.length > 0) {
+        const attendees = data.eventAttendance;
+        document.getElementById('evt-result').innerHTML = `
+            <div style="background: white; padding: 1rem; border-radius: 8px; color: #2d3748;">
+                <h4 style="margin-top: 0; color: var(--primary); border-bottom: 2px solid var(--border); padding-bottom: 0.5rem; text-align: center;">✅ Event Attendance</h4>
+                <p style="margin-bottom: 1rem; color: #718096; font-size: 0.9rem;">Total Attendees: ${attendees.length}</p>
+                <div style="max-height: 350px; overflow-y: auto;">
+                    ${attendees.map(a => `
+                        <div style="padding: 0.75rem; margin-bottom: 0.5rem; background: #f7fafc; border-radius: 4px; border-left: 3px solid var(--primary);">
+                            <p style="margin: 0; font-weight: 600;">${a.firstName} ${a.lastName}</p>
+                            <p style="margin: 0.25rem 0 0 0; font-size: 0.85rem; color: #718096;">
+                                ID: ${a.studentId} | ${a.email || 'No email'} | ${a.phoneNumber || 'No phone'}
+                            </p>
+                            <p style="margin: 0.25rem 0 0 0; font-size: 0.8rem; color: #a0aec0;">
+                                Checked in: ${a.timestamp}
+                            </p>
+                            ${a.note ? `<p style="margin: 0.25rem 0 0 0; font-size: 0.8rem; font-style: italic;">Note: ${a.note}</p>` : ''}
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+        showToast('success', 'Attendance Retrieved', `${attendees.length} records found`);
+    } else {
+        document.getElementById('evt-result').innerHTML = '<div style="color: #e53e3e; padding: 1rem;">No attendance records found</div>';
+    }
+}
 
     // Redis operations
     async function redisLoad() {
@@ -1227,21 +1306,49 @@
     }
 
     async function redisFetch() {
-        const id = getInt('evt-q-id');
-        if (!id) {
-            showToast('error', 'Validation Error', 'Please enter an event ID');
-            return;
-        }
-
-        setLoading('redis-fetch-btn', true);
-        const data = await gql(`query($id: Int!) { redisEventRegistration(eventId: $id) { count success registrations { studentId firstName } } }`, { id });
-        setLoading('redis-fetch-btn', false);
-
-        if(data) {
-            showJson('evt-result', data.redisEventRegistration);
-            showToast('success', 'Redis Data', 'Retrieved from cache');
-        }
+    const id = getInt('evt-q-id');
+    if (!id) {
+        showToast('error', 'Validation Error', 'Please enter an event ID');
+        return;
     }
+
+    setLoading('redis-fetch-btn', true);
+    const data = await gql(`query($id: Int!) { redisEventRegistration(eventId: $id) { count success registrations { studentId firstName lastName email phoneNumber timestamp note } } }`, { id });
+    setLoading('redis-fetch-btn', false);
+
+    if(data && data.redisEventRegistration && data.redisEventRegistration.success) {
+        const redis = data.redisEventRegistration;
+        const registrations = redis.registrations || [];
+
+        if (registrations.length > 0) {
+            document.getElementById('evt-result').innerHTML = `
+                <div style="background: white; padding: 1rem; border-radius: 8px; color: #2d3748;">
+                    <h4 style="margin-top: 0; color: var(--success); border-bottom: 2px solid var(--border); padding-bottom: 0.5rem; text-align: center;">🚀 Redis Cache Data</h4>
+                    <p style="margin-bottom: 1rem; color: #718096; font-size: 0.9rem;">Total Records: ${redis.count}</p>
+                    <div style="max-height: 350px; overflow-y: auto;">
+                        ${registrations.map(r => `
+                            <div style="padding: 0.75rem; margin-bottom: 0.5rem; background: #f0fff4; border-radius: 4px; border-left: 3px solid var(--success);">
+                                <p style="margin: 0; font-weight: 600;">${r.firstName} ${r.lastName}</p>
+                                <p style="margin: 0.25rem 0 0 0; font-size: 0.85rem; color: #718096;">
+                                    ID: ${r.studentId} | ${r.email || 'No email'} | ${r.phoneNumber || 'No phone'}
+                                </p>
+                                <p style="margin: 0.25rem 0 0 0; font-size: 0.8rem; color: #a0aec0;">
+                                    Timestamp: ${r.timestamp}
+                                </p>
+                                ${r.note ? `<p style="margin: 0.25rem 0 0 0; font-size: 0.8rem; font-style: italic;">Note: ${r.note}</p>` : ''}
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        } else {
+            document.getElementById('evt-result').innerHTML = '<div style="color: #e53e3e; padding: 1rem;">No registrations in Redis cache</div>';
+        }
+        showToast('success', 'Redis Data', 'Retrieved from cache');
+    } else {
+        document.getElementById('evt-result').innerHTML = '<div style="color: #e53e3e; padding: 1rem;">No data in Redis cache for this event</div>';
+    }
+}
 
     // CAMPS
     async function createCamp() {
@@ -1311,22 +1418,138 @@
         }
     }
 
-    async function getCampDetails() {
-        const id = getInt('cmp-q-id');
-        if (!id) {
-            showToast('error', 'Validation Error', 'Please enter a camp ID');
-            return;
-        }
-
-        setLoading('cmp-detail-btn', true);
-        const data = await gql(`query($id: Int!) { camp(campId: $id) { description StartTime EndTime } }`, {id});
-        setLoading('cmp-detail-btn', false);
-
-        if(data) {
-            showJson('cmp-result', data.camp);
-            showToast('success', 'Camp Details', 'Retrieved successfully');
-        }
+    // CAMPS - Update getCampDetails()
+async function getCampDetails() {
+    const id = getInt('cmp-q-id');
+    if (!id) {
+        showToast('error', 'Validation Error', 'Please enter a camp ID');
+        return;
     }
+
+    setLoading('cmp-detail-btn', true);
+    const data = await gql(`query($id: Int!) { camp(campId: $id) { CampNumber description StartTime EndTime } }`, {id});
+    setLoading('cmp-detail-btn', false);
+
+    if(data && data.camp && data.camp.length > 0) {
+        const c = data.camp[0];
+        document.getElementById('cmp-result').innerHTML = `
+            <div style="background: white; padding: 1rem; border-radius: 8px; color: #2d3748;">
+                <h4 style="margin-top: 0; color: var(--primary); border-bottom: 2px solid var(--border); padding-bottom: 0.5rem; text-align: center;">🏕️ Camp #${c.CampNumber}</h4>
+                <div style="display: grid; gap: 0.5rem; font-size: 0.9rem;">
+                    <p><strong>Description:</strong> ${c.description || 'N/A'}</p>
+                    <p><strong>Start Time:</strong> ${c.StartTime || 'N/A'}</p>
+                    <p><strong>End Time:</strong> ${c.EndTime || 'N/A'}</p>
+                </div>
+            </div>
+        `;
+        showToast('success', 'Camp Details', 'Retrieved successfully');
+    } else {
+        document.getElementById('cmp-result').innerHTML = '<div style="color: #e53e3e; padding: 1rem;">Camp not found</div>';
+    }
+}
+
+// CAMPS - Update getCampRegs()
+async function getCampRegs() {
+    const id = getInt('cmp-q-id');
+    if (!id) {
+        showToast('error', 'Validation Error', 'Please enter a camp ID');
+        return;
+    }
+
+    setLoading('cmp-regs-btn', true);
+    const data = await gql(`query($id: Int!) { campRegistration(campId: $id) { campId AmountPaid description VenueAdress } }`, {id});
+    setLoading('cmp-regs-btn', false);
+
+    if(data && data.campRegistration && data.campRegistration.length > 0) {
+        const regs = data.campRegistration;
+        document.getElementById('cmp-result').innerHTML = `
+            <div style="background: white; padding: 1rem; border-radius: 8px; color: #2d3748;">
+                <h4 style="margin-top: 0; color: var(--primary); border-bottom: 2px solid var(--border); padding-bottom: 0.5rem; text-align: center;">📝 Camp Registrations</h4>
+                <p style="margin-bottom: 1rem; color: #718096; font-size: 0.9rem;">Total Registrations: ${regs.length}</p>
+                <div style="max-height: 350px; overflow-y: auto;">
+                    ${regs.map(r => `
+                        <div style="padding: 0.75rem; margin-bottom: 0.5rem; background: #f7fafc; border-radius: 4px; border-left: 3px solid var(--primary);">
+                            <p style="margin: 0; font-weight: 600;">Camp ID: ${r.campId}</p>
+                            <p style="margin: 0.25rem 0 0 0; font-size: 0.85rem;"><strong>Amount Paid:</strong> $${r.AmountPaid}</p>
+                            <p style="margin: 0.25rem 0 0 0; font-size: 0.85rem;"><strong>Description:</strong> ${r.description || 'N/A'}</p>
+                            <p style="margin: 0.25rem 0 0 0; font-size: 0.85rem;"><strong>Venue:</strong> ${r.VenueAdress || 'N/A'}</p>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+        showToast('success', 'Registrations', 'Retrieved successfully');
+    } else {
+        document.getElementById('cmp-result').innerHTML = '<div style="color: #e53e3e; padding: 1rem;">No registrations found</div>';
+    }
+}
+
+// CAMPS - Update getStudentCampRegs()
+async function getStudentCampRegs() {
+    const id = getInt('cmp-q-std-id');
+    if (!id) {
+        showToast('error', 'Validation Error', 'Please enter a student ID');
+        return;
+    }
+
+    setLoading('cmp-std-btn', true);
+    const data = await gql(`query($id: Int!) { campRegistrationStudent(studentId: $id) { campId studentName registeredTime amountPaid parentName description venueAddress } }`, {id});
+    setLoading('cmp-std-btn', false);
+
+    if(data && data.campRegistrationStudent && data.campRegistrationStudent.length > 0) {
+        const history = data.campRegistrationStudent;
+        document.getElementById('cmp-result').innerHTML = `
+            <div style="background: white; padding: 1rem; border-radius: 8px; color: #2d3748;">
+                <h4 style="margin-top: 0; color: var(--primary); border-bottom: 2px solid var(--border); padding-bottom: 0.5rem; text-align: center;">🎒 ${history[0].studentName}'s Camp History</h4>
+                <p style="margin-bottom: 1rem; color: #718096; font-size: 0.9rem;">Total Camps: ${history.length}</p>
+                <div style="max-height: 350px; overflow-y: auto;">
+                    ${history.map(h => `
+                        <div style="padding: 0.75rem; margin-bottom: 0.5rem; background: #f7fafc; border-radius: 4px; border-left: 3px solid var(--success);">
+                            <p style="margin: 0; font-weight: 600;">Camp #${h.campId}</p>
+                            <p style="margin: 0.25rem 0 0 0; font-size: 0.85rem;"><strong>Registered:</strong> ${h.registeredTime}</p>
+                            <p style="margin: 0.25rem 0 0 0; font-size: 0.85rem;"><strong>Amount Paid:</strong> $${h.amountPaid}</p>
+                            <p style="margin: 0.25rem 0 0 0; font-size: 0.85rem;"><strong>Parent:</strong> ${h.parentName}</p>
+                            <p style="margin: 0.25rem 0 0 0; font-size: 0.85rem;"><strong>Description:</strong> ${h.description || 'N/A'}</p>
+                            <p style="margin: 0.25rem 0 0 0; font-size: 0.85rem;"><strong>Venue:</strong> ${h.venueAddress}</p>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+        showToast('success', 'Student History', `${history.length} camps found`);
+    } else {
+        document.getElementById('cmp-result').innerHTML = '<div style="color: #e53e3e; padding: 1rem;">No camp history found for this student</div>';
+    }
+}
+
+// VENUES - Update getVenueDetail()
+async function getVenueDetail() {
+    const id = getInt('ven-id');
+    if (!id) {
+        showToast('error', 'Validation Error', 'Please enter a venue ID');
+        return;
+    }
+
+    setLoading('ven-get-btn', true);
+    const data = await gql(`query($id: Int!) { venue(venueId: $id) { VenueAdress description } }`, {id});
+    setLoading('ven-get-btn', false);
+
+    if(data && data.venue && data.venue.length > 0) {
+        const v = data.venue[0];
+        document.getElementById('ven-result').innerHTML = `
+            <div style="background: white; padding: 1rem; border-radius: 8px; color: #2d3748;">
+                <h4 style="margin-top: 0; color: var(--primary); border-bottom: 2px solid var(--border); padding-bottom: 0.5rem; text-align: center;">🏘️ Venue Details</h4>
+                <div style="display: grid; gap: 0.5rem; font-size: 0.9rem;">
+                    <p><strong>Address:</strong> ${v.VenueAdress || 'N/A'}</p>
+                    <p><strong>Description:</strong> ${v.description || 'N/A'}</p>
+                </div>
+            </div>
+        `;
+        showToast('success', 'Venue Details', 'Retrieved successfully');
+    } else {
+        document.getElementById('ven-result').innerHTML = '<div style="color: #e53e3e; padding: 1rem;">Venue not found</div>';
+    }
+}
 
     async function getCampRegs() {
         const id = getInt('cmp-q-id');
@@ -1342,41 +1565,6 @@
         if(data) {
             showJson('cmp-result', data.campRegistration);
             showToast('success', 'Registrations', 'Retrieved successfully');
-        }
-    }
-
-    async function getStudentCampRegs() {
-        const id = getInt('cmp-q-std-id');
-        if (!id) {
-            showToast('error', 'Validation Error', 'Please enter a student ID');
-            return;
-        }
-
-        setLoading('cmp-std-btn', true);
-        const data = await gql(`query($id: Int!) { campRegistrationStudent(studentId: $id) { campId studentName amountPaid description } }`, {id});
-        setLoading('cmp-std-btn', false);
-
-        if(data) {
-            showJson('cmp-result', data.campRegistrationStudent);
-            showToast('success', 'Student History', `${data.campRegistrationStudent?.length || 0} camps found`);
-        }
-    }
-
-    // VENUES
-    async function getVenueDetail() {
-        const id = getInt('ven-id');
-        if (!id) {
-            showToast('error', 'Validation Error', 'Please enter a venue ID');
-            return;
-        }
-
-        setLoading('ven-get-btn', true);
-        const data = await gql(`query($id: Int!) { venue(venueId: $id) { VenueAdress description } }`, {id});
-        setLoading('ven-get-btn', false);
-
-        if(data) {
-            showJson('ven-result', data.venue);
-            showToast('success', 'Venue Details', 'Retrieved successfully');
         }
     }
 
