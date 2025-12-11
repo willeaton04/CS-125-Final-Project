@@ -819,7 +819,6 @@ class Query:
         finally:
             redis_conn.close()
 
-<<<<<<< Updated upstream
     @strawberry.field
     def parent(self, parent_id: int) -> Optional[Parent]:
         conn = get_mysql_conn()
@@ -859,8 +858,6 @@ class Query:
                 return Parent(**parent_data)
         finally:
             conn.close()
-=======
->>>>>>> Stashed changes
 
 @strawberry.type
 class Mutation:

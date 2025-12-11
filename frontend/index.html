@@ -925,18 +925,34 @@
 
     // PARENTS
     async function findParent() {
-    const id = getInt('par-find-id');
-    if (!id) {
-        showToast('error', 'Validation Error', 'Please enter a parent ID');
-        return;
-    }
+        const id = getInt('par-find-id');
+        if (!id) {
+            showToast('error', 'Validation Error', 'Please enter a parent ID');
+            return;
+        }
 
-    setLoading('par-find-btn', true);
-    const data = await gql(`query($id: Int!) { parents { parentId parentName email phoneNumber note students } }`, {});
+        setLoading('par-find-btn', true);
+        const data = await gql(
+      `
+        query ($id: Int!) {
+          parent(parentId: $id) {
+            parentId
+            parentName
+            email
+            phoneNumber
+            note
+            students
+          }
+        }
+      `,
+      { id }
+    );
+
+
     setLoading('par-find-btn', false);
 
-    if (data && data.parents) {
-        const p = data.parents.find(parent => parent.parentId === id);
+    if (data && data.parent) {
+        const p = data.parent;
         if (p) {
             document.getElementById('par-result').innerHTML = `
                 <div style="background: white; padding: 1rem; border-radius: 8px; color: #2d3748;">
