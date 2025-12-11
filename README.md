@@ -7,27 +7,20 @@ Who’s using this?
 
 What do they want to do?
 - Take attendance 
-- Finances (who has paid for ...)
 - Registration for several events 
 - Leaders are able to access their shifts 
 - The database should display event information 
 
 What should they be able to do? 
 - Take attendance 
-- Finances (who has paid for ...)
 - Registration: names, emails, phone numbers, parents 
 - Description of youth members
-- Keep track of students, leaders and volunteers
+- Keep track of students, leaders, and volunteers
 
 Assumptions: - We only record one parent per each student
 
-What shouldn’t they do?
-
-
-What’s your team’s name? 
+# Team Name
 Nice Will 
-
-Create the repository ✅
 
 
 # Goals 
@@ -47,6 +40,8 @@ To set docker services run this command:
 ```bash
 chmod +x build-services.sh && ./build-services.sh
 ```
+
+This sets up the entire project locally :)
 
 ---
 # Infra
