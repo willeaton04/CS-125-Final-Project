@@ -588,7 +588,8 @@ class Query:
                     v.description AS description
                 FROM Venue v
                 JOIN Event e ON e.venue_id = v.id
-                WHERE v.id = %s;
+                WHERE v.id = %s
+                LIMIT 1;
                 ''', (venue_id,))
                 results = cursor.fetchall()
                 return [VenueDetail(**result) for result in results]
@@ -784,6 +785,46 @@ class Query:
             )
         finally:
             redis_conn.close()
+
+    @strawberry.field
+    def parent(self, parent_id: int) -> Optional[Parent]:
+        conn = get_mysql_conn()
+        try:
+            with conn.cursor() as cursor:
+                cursor.execute('USE YouthGroup;')
+                cursor.execute('''
+                               SELECT p.id                                   AS parent_id,
+                                      CONCAT(p.first_name, ' ', p.last_name) AS parent_name,
+                                      p.email                                AS email,
+                                      p.phone_number                         AS phone_number,
+                                      p.note                                 AS note,
+                                      CONCAT(s.first_name, ' ', s.last_name) AS student_name
+                               FROM Parent p
+                                        LEFT JOIN Student s ON s.parent_id = p.id
+                               WHERE p.id = %s
+                               ORDER BY p.id;
+                               ''', (parent_id,))
+                rows = cursor.fetchall()
+
+                if not rows:
+                    return None
+
+                parent_data = {
+                    "parent_id": rows[0]["parent_id"],
+                    "parent_name": rows[0]["parent_name"],
+                    "email": rows[0]["email"],
+                    "phone_number": rows[0]["phone_number"],
+                    "note": rows[0]["note"],
+                    "students": []
+                }
+
+                for row in rows:
+                    if row["student_name"]:
+                        parent_data["students"].append(row["student_name"])
+
+                return Parent(**parent_data)
+        finally:
+            conn.close()
 
 @strawberry.type
 class Mutation:

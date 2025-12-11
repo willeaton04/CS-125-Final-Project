@@ -14,7 +14,11 @@
             --border: #e2e8f0;
             --danger: #e53e3e;
             --success: #38a169;
+            --warning: #ed8936;
+            --info: #3182ce;
         }
+
+        * { box-sizing: border-box; }
 
         body {
             font-family: -apple-system, system-ui, sans-serif;
@@ -23,6 +27,7 @@
             margin: 0;
             display: flex;
             height: 100vh;
+            overflow: hidden;
         }
 
         /* Sidebar */
@@ -82,17 +87,6 @@
         h2 { margin-top: 0; border-bottom: 2px solid var(--border); padding-bottom: 0.5rem; font-size: 1.2rem; }
         h3 { font-size: 1rem; color: #4a5568; margin-bottom: 1rem; }
 
-        /* Tables */
-        .table-container { overflow-x: auto; }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.9rem;
-        }
-        th, td { padding: 10px; text-align: left; border-bottom: 1px solid var(--border); }
-        th { background-color: #f8f9fa; font-weight: 600; }
-        tr:hover { background-color: #f1f5f9; }
-
         /* Forms */
         .form-group { margin-bottom: 1rem; }
         label { display: block; margin-bottom: 0.4rem; font-size: 0.85rem; font-weight: 600; }
@@ -101,8 +95,24 @@
             padding: 0.5rem;
             border: 1px solid var(--border);
             border-radius: 4px;
-            box-sizing: border-box;
             font-family: inherit;
+            font-size: 0.9rem;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(76, 81, 191, 0.1);
+        }
+
+        input.error, textarea.error {
+            border-color: var(--danger);
+        }
+
+        .error-message {
+            color: var(--danger);
+            font-size: 0.8rem;
+            margin-top: 0.25rem;
         }
 
         .btn {
@@ -112,11 +122,89 @@
             cursor: pointer;
             font-size: 0.9rem;
             font-weight: 500;
+            transition: all 0.2s;
+            position: relative;
+        }
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
         }
         .btn-primary { background-color: var(--primary); color: white; }
-        .btn-primary:hover { background-color: var(--secondary); }
+        .btn-primary:hover:not(:disabled) { background-color: var(--secondary); }
         .btn-danger { background-color: var(--danger); color: white; }
+        .btn-danger:hover:not(:disabled) { background-color: #c53030; }
         .btn-success { background-color: var(--success); color: white; }
+        .btn-success:hover:not(:disabled) { background-color: #2f855a; }
+        .btn-secondary { background-color: #718096; color: white; }
+        .btn-secondary:hover:not(:disabled) { background-color: #4a5568; }
+
+        /* Loading Spinner */
+        .spinner {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+            margin-left: 0.5rem;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Toast Notifications */
+        .toast-container {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .toast {
+            background: white;
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            min-width: 300px;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(400px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .toast.success { border-left: 4px solid var(--success); }
+        .toast.error { border-left: 4px solid var(--danger); }
+        .toast.info { border-left: 4px solid var(--info); }
+
+        .toast-icon {
+            font-size: 1.25rem;
+            flex-shrink: 0;
+        }
+
+        .toast-content {
+            flex: 1;
+        }
+
+        .toast-title {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .toast-message {
+            font-size: 0.85rem;
+            color: #718096;
+        }
 
         /* Results Box */
         .json-box {
@@ -126,9 +214,62 @@
             border-radius: 4px;
             font-family: monospace;
             white-space: pre-wrap;
-            max-height: 200px;
+            max-height: 300px;
             overflow-y: auto;
             font-size: 0.8rem;
+            line-height: 1.5;
+        }
+
+        /* Config Section */
+        .config-input {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 0.85rem;
+        }
+
+        /* Advanced Query Section */
+        .query-editor {
+            height: 300px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.85rem;
+            resize: vertical;
+        }
+
+        .variables-editor {
+            height: 150px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.85rem;
+            resize: vertical;
+        }
+
+        .query-examples {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-bottom: 1rem;
+        }
+
+        .example-btn {
+            padding: 0.25rem 0.75rem;
+            background: #edf2f7;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.2s;
+        }
+
+        .example-btn:hover {
+            background: #e2e8f0;
+            border-color: var(--primary);
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .grid-2 { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -143,153 +284,287 @@
         <button onclick="switchTab('events')">Events & Redis</button>
         <button onclick="switchTab('camps')">Camps</button>
         <button onclick="switchTab('venues')">Venues</button>
+        <button onclick="switchTab('advanced')">🔧 Advanced Query</button>
+        <button onclick="switchTab('config')">⚙️ Settings</button>
     </nav>
 </aside>
 
 <main>
+    <!-- Toast Container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- Config Section -->
+    <section id="config" class="view-section">
+        <div class="card">
+            <h2>⚙️ Configuration</h2>
+            <div class="form-group">
+                <label>GraphQL API Endpoint</label>
+                <input type="text" id="api-url" class="config-input" value="http://localhost:8001/graphql" placeholder="http://localhost:8001/graphql">
+            </div>
+            <button class="btn btn-primary" onclick="saveConfig()">Save Configuration</button>
+        </div>
+    </section>
+
+    <!-- Advanced Query Section -->
+    <section id="advanced" class="view-section">
+        <div class="card">
+            <h2>🔧 Advanced GraphQL Query</h2>
+            <p style="font-size: 0.9rem; color: #718096; margin-bottom: 1rem;">
+                Execute custom GraphQL queries and mutations directly. Use the examples below to get started.
+            </p>
+
+            <div class="query-examples">
+                <button class="example-btn" onclick="loadQueryExample('students')">List Students</button>
+                <button class="example-btn" onclick="loadQueryExample('student')">Get Student</button>
+                <button class="example-btn" onclick="loadQueryExample('parent')">Get Parent</button>
+                <button class="example-btn" onclick="loadQueryExample('events')">List Events</button>
+                <button class="example-btn" onclick="loadQueryExample('createEvent')">Create Event</button>
+                <button class="example-btn" onclick="loadQueryExample('updateStudent')">Update Student</button>
+            </div>
+
+            <div class="form-group">
+                <label>GraphQL Query/Mutation</label>
+                <textarea id="adv-query" class="query-editor" placeholder="Enter your GraphQL query here...">query {
+  students {
+    studentName
+    email
+    phoneNumber
+  }
+}</textarea>
+            </div>
+
+            <div class="form-group">
+                <label>Variables (JSON)</label>
+                <textarea id="adv-variables" class="variables-editor" placeholder='{"id": 1}'>{}</textarea>
+            </div>
+
+            <button class="btn btn-primary" onclick="executeAdvancedQuery()" id="adv-execute-btn">
+                Execute Query
+            </button>
+
+            <div class="form-group" style="margin-top: 1rem;">
+                <label>Response</label>
+                <div id="adv-result" class="json-box">Results will appear here...</div>
+            </div>
+        </div>
+    </section>
 
     <section id="students" class="view-section active">
         <div class="grid-2">
             <div class="card">
-                <h3>Find Student 🧍 by ID</h3>
-                <div class="form-group"><input type="number" id="std-find-id" placeholder="Student ID"></div>
-                <button class="btn btn-primary" onclick="findStudent()">Find</button>
+                <h3>Find Student by ID</h3>
+                <div class="form-group">
+                    <input type="number" id="std-find-id" placeholder="Student ID">
+                </div>
+                <button class="btn btn-primary" onclick="findStudent()" id="std-find-btn">Find</button>
                 <div id="std-result" class="json-box" style="margin-top:10px;"></div>
             </div>
 
             <div class="card">
                 <h3>Update / Delete Student</h3>
-                <div class="form-group"><input type="number" id="std-upd-id" placeholder="ID to Update/Delete"></div>
-                <div class="form-group"><input type="text" id="std-upd-email" placeholder="New Email"></div>
-                <div class="form-group"><input type="text" id="std-upd-phone" placeholder="New Phone"></div>
-                <div class="form-group"><input type="text" id="std-upd-note" placeholder="New Note"></div>
+                <div class="form-group">
+                    <label>Student ID</label>
+                    <input type="number" id="std-upd-id" placeholder="ID to Update/Delete">
+                </div>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="std-upd-email" placeholder="New Email">
+                </div>
+                <div class="form-group">
+                    <label>Phone</label>
+                    <input type="tel" id="std-upd-phone" placeholder="New Phone">
+                </div>
+                <div class="form-group">
+                    <label>Note</label>
+                    <input type="text" id="std-upd-note" placeholder="New Note">
+                </div>
                 <div style="display:flex; gap:10px;">
-                    <button class="btn btn-primary" onclick="updateStudent()">Update</button>
-                    <button class="btn btn-danger" onclick="deleteStudent()">Delete</button>
+                    <button class="btn btn-primary" onclick="updateStudent()" id="std-upd-btn">Update</button>
+                    <button class="btn btn-danger" onclick="deleteStudent()" id="std-del-btn">Delete</button>
                 </div>
             </div>
         </div>
     </section>
 
     <section id="parents" class="view-section">
-
-        <div class="card">
-            <h3>Manage Parent👪</h3>
-            <div class="grid-2">
-                <div>
-                    <label>Parent ID</label>
-                    <input type="number" id="par-id" placeholder="ID">
+        <div class="grid-2">
+            <div class="card">
+                <h3>Find Parent by ID</h3>
+                <div class="form-group">
+                    <input type="number" id="par-find-id" placeholder="Parent ID">
                 </div>
-                <div>
-                    <label>Actions</label>
-                    <div style="display:flex; gap:10px;">
-                        <button class="btn btn-primary" onclick="updateParent()">Update Details Below</button>
-                        <button class="btn btn-danger" onclick="deleteParent()">Delete Parent</button>
-                    </div>
-                </div>
+                <button class="btn btn-primary" onclick="findParent()" id="par-find-btn">Find</button>
+                <div id="par-result" class="json-box" style="margin-top:10px;"></div>
             </div>
-            <div style="margin-top:1rem;" class="grid-2">
-                <input type="text" id="par-email" placeholder="New Email">
-                <input type="text" id="par-phone" placeholder="New Phone">
-                <input type="text" id="par-note" placeholder="New Note" style="grid-column: span 2;">
+
+            <div class="card">
+                <h3>Update / Delete Parent</h3>
+                <div class="form-group">
+                    <label>Parent ID</label>
+                    <input type="number" id="par-id" placeholder="ID to Update/Delete">
+                </div>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="par-email" placeholder="New Email">
+                </div>
+                <div class="form-group">
+                    <label>Phone</label>
+                    <input type="tel" id="par-phone" placeholder="New Phone">
+                </div>
+                <div class="form-group">
+                    <label>Note</label>
+                    <input type="text" id="par-note" placeholder="New Note">
+                </div>
+                <div style="display:flex; gap:10px;">
+                    <button class="btn btn-primary" onclick="updateParent()" id="par-upd-btn">Update</button>
+                    <button class="btn btn-danger" onclick="deleteParent()" id="par-del-btn">Delete</button>
+                </div>
             </div>
         </div>
     </section>
 
     <section id="leaders" class="view-section">
-
         <div class="grid-2">
             <div class="card">
-                <h3>Leader Details & Small Groups 👬</h3>
-                <div class="form-group"><input type="number" id="ldr-find-id" placeholder="Leader ID"></div>
+                <h3>Leader Details & Small Groups</h3>
+                <div class="form-group">
+                    <input type="number" id="ldr-find-id" placeholder="Leader ID">
+                </div>
                 <div style="display:flex; gap:10px;">
-                    <button class="btn btn-primary" onclick="findLeader()">Get Details</button>
-                    <button class="btn btn-secondary" onclick="findLeaderGroup()">Get Group Info</button>
+                    <button class="btn btn-primary" onclick="findLeader()" id="ldr-find-btn">Get Details</button>
+                    <button class="btn btn-secondary" onclick="findLeaderGroup()" id="ldr-group-btn">Get Group Info</button>
                 </div>
                 <div id="ldr-result" class="json-box" style="margin-top:10px;"></div>
             </div>
 
             <div class="card">
                 <h3>Update Leader</h3>
-                <div class="form-group"><input type="number" id="ldr-upd-id" placeholder="Leader ID"></div>
-                <div class="form-group"><input type="number" id="ldr-salary" placeholder="Salary"></div>
-                <div class="form-group"><input type="text" id="ldr-date" placeholder="Date Joined (YYYY-MM-DD)"></div>
+                <div class="form-group">
+                    <label>Leader ID</label>
+                    <input type="number" id="ldr-upd-id" placeholder="Leader ID">
+                </div>
+                <div class="form-group">
+                    <label>Salary</label>
+                    <input type="number" id="ldr-salary" placeholder="Salary" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label>Date Joined</label>
+                    <input type="date" id="ldr-date" placeholder="Date Joined">
+                </div>
                 <div style="display:flex; gap:10px;">
-                    <button class="btn btn-primary" onclick="updateLeader()">Update</button>
-                    <button class="btn btn-danger" onclick="deleteLeader()">Delete</button>
+                    <button class="btn btn-primary" onclick="updateLeader()" id="ldr-upd-btn">Update</button>
+                    <button class="btn btn-danger" onclick="deleteLeader()" id="ldr-del-btn">Delete</button>
                 </div>
             </div>
         </div>
     </section>
 
     <section id="events" class="view-section">
-
         <div class="grid-2">
             <div class="card">
-                <h3>Create Event (MySQL + Mongo)</h3>
-                <div class="form-group"><input type="text" id="evt-desc" placeholder="Description"></div>
-                <div class="form-group"><input type="datetime-local" id="evt-start"></div>
-                <div class="form-group"><input type="datetime-local" id="evt-end"></div>
-                <div class="form-group"><input type="number" id="evt-venue" value="1" placeholder="Venue ID"></div>
+                <h3>Create Event</h3>
                 <div class="form-group">
-                    <textarea id="evt-custom" rows="2" placeholder='Custom Fields (JSON): {"theme": "fun"}'></textarea>
+                    <label>Description</label>
+                    <input type="text" id="evt-desc" placeholder="Description">
                 </div>
-                <button class="btn btn-success" onclick="createEvent()">Create New Event</button>
-                <hr>
-                <h3>Update/Delete (MySQL)</h3>
-                <div class="form-group"><input type="number" id="evt-id" placeholder="Event ID"></div>
+                <div class="form-group">
+                    <label>Start Time</label>
+                    <input type="datetime-local" id="evt-start">
+                </div>
+                <div class="form-group">
+                    <label>End Time</label>
+                    <input type="datetime-local" id="evt-end">
+                </div>
+                <div class="form-group">
+                    <label>Venue ID</label>
+                    <input type="number" id="evt-venue" value="1" placeholder="Venue ID">
+                </div>
+                <div class="form-group">
+                    <label>Custom Fields (JSON)</label>
+                    <textarea id="evt-custom" rows="2" placeholder='{"theme": "fun"}'></textarea>
+                </div>
+                <button class="btn btn-success" onclick="createEvent()" id="evt-create-btn">Create New Event</button>
+                <hr style="margin: 1.5rem 0;">
+                <h3>Update/Delete</h3>
+                <div class="form-group">
+                    <label>Event ID</label>
+                    <input type="number" id="evt-id" placeholder="Event ID">
+                </div>
                 <div style="display:flex; gap:10px;">
-                    <button class="btn btn-primary" onclick="updateEvent()">Update (Uses fields above)</button>
-                    <button class="btn btn-danger" onclick="deleteEvent()">Delete Event</button>
+                    <button class="btn btn-primary" onclick="updateEvent()" id="evt-upd-btn">Update (Uses fields above)</button>
+                    <button class="btn btn-danger" onclick="deleteEvent()" id="evt-del-btn">Delete Event</button>
                 </div>
             </div>
 
             <div class="card">
                 <h3>Event Queries</h3>
-                <div class="form-group"><input type="number" id="evt-q-id" placeholder="Event ID"></div>
+                <div class="form-group">
+                    <label>Event ID</label>
+                    <input type="number" id="evt-q-id" placeholder="Event ID">
+                </div>
                 <div style="display:flex; gap:5px; flex-wrap:wrap;">
-                    <button class="btn btn-secondary" onclick="getEventDetails()">Detail</button>
-                    <button class="btn btn-secondary" onclick="getEventAttendance()">MySQL Attendance</button>
+                    <button class="btn btn-secondary" onclick="getEventDetails()" id="evt-detail-btn">Detail</button>
+                    <button class="btn btn-secondary" onclick="getEventAttendance()" id="evt-attend-btn">MySQL Attendance</button>
                 </div>
                 <div id="evt-result" class="json-box" style="margin-top:10px; height:100px;"></div>
 
                 <h3 style="margin-top:1.5rem;">Redis Cache Operations</h3>
                 <p style="font-size:0.8rem; color:#666;">Manage attendance cache for high performance.</p>
                 <div style="display:flex; gap:5px; flex-wrap:wrap;">
-                    <button class="btn btn-primary" onclick="redisLoad()">Load to Redis</button>
-                    <button class="btn btn-primary" onclick="redisUpdate()">Update Cache</button>
-                    <button class="btn btn-danger" onclick="redisDelete()">Clear Cache</button>
-                    <button class="btn btn-success" onclick="redisFetch()">Fetch from Redis</button>
+                    <button class="btn btn-primary" onclick="redisLoad()" id="redis-load-btn">Load to Redis</button>
+                    <button class="btn btn-primary" onclick="redisUpdate()" id="redis-upd-btn">Update Cache</button>
+                    <button class="btn btn-danger" onclick="redisDelete()" id="redis-del-btn">Clear Cache</button>
+                    <button class="btn btn-success" onclick="redisFetch()" id="redis-fetch-btn">Fetch from Redis</button>
                 </div>
             </div>
         </div>
     </section>
 
     <section id="camps" class="view-section">
-
         <div class="grid-2">
             <div class="card">
-                <h3>Manage Camps🏕️</h3>
-                <div class="form-group"><input type="number" id="cmp-id" placeholder="Camp ID (for Update/Delete)"></div>
-                <div class="form-group"><input type="text" id="cmp-desc" placeholder="Description"></div>
-                <div class="form-group"><input type="datetime-local" id="cmp-start"></div>
-                <div class="form-group"><input type="datetime-local" id="cmp-end"></div>
-                <div class="form-group"><input type="number" id="cmp-venue" placeholder="Venue ID (Create Only)"></div>
+                <h3>Manage Camps 🏕️</h3>
+                <div class="form-group">
+                    <label>Camp ID (for Update/Delete)</label>
+                    <input type="number" id="cmp-id" placeholder="Camp ID">
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <input type="text" id="cmp-desc" placeholder="Description">
+                </div>
+                <div class="form-group">
+                    <label>Start Time</label>
+                    <input type="datetime-local" id="cmp-start">
+                </div>
+                <div class="form-group">
+                    <label>End Time</label>
+                    <input type="datetime-local" id="cmp-end">
+                </div>
+                <div class="form-group">
+                    <label>Venue ID (Create Only)</label>
+                    <input type="number" id="cmp-venue" placeholder="Venue ID">
+                </div>
                 <div style="display:flex; gap:10px; margin-top:1rem;">
-                    <button class="btn btn-success" onclick="createCamp()">Create</button>
-                    <button class="btn btn-primary" onclick="updateCamp()">Update</button>
-                    <button class="btn btn-danger" onclick="deleteCamp()">Delete</button>
+                    <button class="btn btn-success" onclick="createCamp()" id="cmp-create-btn">Create</button>
+                    <button class="btn btn-primary" onclick="updateCamp()" id="cmp-upd-btn">Update</button>
+                    <button class="btn btn-danger" onclick="deleteCamp()" id="cmp-del-btn">Delete</button>
                 </div>
             </div>
 
             <div class="card">
                 <h3>Camp Queries</h3>
-                <div class="form-group"><input type="number" id="cmp-q-id" placeholder="Camp ID"></div>
-                <div class="form-group"><input type="number" id="cmp-q-std-id" placeholder="Student ID (for history)"></div>
+                <div class="form-group">
+                    <label>Camp ID</label>
+                    <input type="number" id="cmp-q-id" placeholder="Camp ID">
+                </div>
+                <div class="form-group">
+                    <label>Student ID (for history)</label>
+                    <input type="number" id="cmp-q-std-id" placeholder="Student ID">
+                </div>
                 <div style="display:flex; gap:5px; flex-wrap:wrap;">
-                    <button class="btn btn-secondary" onclick="getCampDetails()">Camp Detail</button>
-                    <button class="btn btn-secondary" onclick="getCampRegs()">Registrations (By Camp ID)</button>
-                    <button class="btn btn-secondary" onclick="getStudentCampRegs()">Student History (By Student ID)</button>
+                    <button class="btn btn-secondary" onclick="getCampDetails()" id="cmp-detail-btn">Camp Detail</button>
+                    <button class="btn btn-secondary" onclick="getCampRegs()" id="cmp-regs-btn">Registrations (By Camp ID)</button>
+                    <button class="btn btn-secondary" onclick="getStudentCampRegs()" id="cmp-std-btn">Student History (By Student ID)</button>
                 </div>
                 <div id="cmp-result" class="json-box" style="margin-top:10px;"></div>
             </div>
@@ -297,21 +572,29 @@
     </section>
 
     <section id="venues" class="view-section">
-
         <div class="card">
             <h3>Manage Venue 🏘️</h3>
             <div class="grid-2">
                 <div>
-                    <div class="form-group"><input type="number" id="ven-id" placeholder="Venue ID"></div>
+                    <div class="form-group">
+                        <label>Venue ID</label>
+                        <input type="number" id="ven-id" placeholder="Venue ID">
+                    </div>
                     <div style="display:flex; gap:10px;">
-                        <button class="btn btn-secondary" onclick="getVenueDetail()">Get Detail</button>
-                        <button class="btn btn-danger" onclick="deleteVenue()">Delete</button>
+                        <button class="btn btn-secondary" onclick="getVenueDetail()" id="ven-get-btn">Get Detail</button>
+                        <button class="btn btn-danger" onclick="deleteVenue()" id="ven-del-btn">Delete</button>
                     </div>
                 </div>
                 <div>
-                    <div class="form-group"><input type="text" id="ven-addr" placeholder="Address"></div>
-                    <div class="form-group"><input type="text" id="ven-desc" placeholder="Description"></div>
-                    <button class="btn btn-primary" onclick="updateVenue()">Update</button>
+                    <div class="form-group">
+                        <label>Address</label>
+                        <input type="text" id="ven-addr" placeholder="Address">
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <input type="text" id="ven-desc" placeholder="Description">
+                    </div>
+                    <button class="btn btn-primary" onclick="updateVenue()" id="ven-upd-btn">Update</button>
                 </div>
             </div>
             <div id="ven-result" class="json-box" style="margin-top:10px;"></div>
@@ -321,9 +604,81 @@
 </main>
 
 <script>
-    const API_URL = "http://localhost:8001/graphql";
+    // Configuration
+    let API_URL = localStorage.getItem('apiUrl') || "http://localhost:8001/graphql";
 
-    // --- Helpers ---
+    // Toast notification system
+    function showToast(type, title, message) {
+        const container = document.getElementById('toast-container');
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+
+        const icons = {
+            success: '✓',
+            error: '✗',
+            info: 'ℹ'
+        };
+
+        toast.innerHTML = `
+            <div class="toast-icon">${icons[type] || 'ℹ'}</div>
+            <div class="toast-content">
+                <div class="toast-title">${title}</div>
+                ${message ? `<div class="toast-message">${message}</div>` : ''}
+            </div>
+        `;
+
+        container.appendChild(toast);
+
+        setTimeout(() => {
+            toast.style.animation = 'slideIn 0.3s ease reverse';
+            setTimeout(() => toast.remove(), 300);
+        }, 4000);
+    }
+
+    // Loading state management
+    function setLoading(buttonId, isLoading) {
+        const btn = document.getElementById(buttonId);
+        if (!btn) return;
+
+        if (isLoading) {
+            btn.disabled = true;
+            const originalText = btn.textContent;
+            btn.dataset.originalText = originalText;
+            btn.innerHTML = originalText + '<span class="spinner"></span>';
+        } else {
+            btn.disabled = false;
+            btn.textContent = btn.dataset.originalText || btn.textContent.replace(/\s*$/, '');
+        }
+    }
+
+    // Clear form
+    function clearForm(prefix) {
+        const inputs = document.querySelectorAll(`[id^="${prefix}"]`);
+        inputs.forEach(input => {
+            if (input.type === 'number' || input.type === 'text' || input.type === 'email' || input.type === 'tel') {
+                input.value = '';
+            }
+        });
+    }
+
+    // Save configuration
+    function saveConfig() {
+        const url = document.getElementById('api-url').value;
+        if (!url) {
+            showToast('error', 'Error', 'Please enter a valid API URL');
+            return;
+        }
+        localStorage.setItem('apiUrl', url);
+        API_URL = url;
+        showToast('success', 'Configuration Saved', 'API endpoint updated successfully');
+    }
+
+    // Load saved config on page load
+    document.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('api-url').value = API_URL;
+    });
+
+    // Tab switching
     function switchTab(id) {
         document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
         document.querySelectorAll('nav button').forEach(el => el.classList.remove('active'));
@@ -331,6 +686,7 @@
         event.currentTarget.classList.add('active');
     }
 
+    // GraphQL request handler
     async function gql(query, variables = {}) {
         try {
             const res = await fetch(API_URL, {
@@ -338,250 +694,749 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ query, variables })
             });
+
+            if (!res.ok) {
+                throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+            }
+
             const json = await res.json();
+
             if (json.errors) {
-                alert("GraphQL Error: " + json.errors[0].message);
-                console.error(json.errors);
+                const errorMsg = json.errors.map(e => e.message).join(', ');
+                showToast('error', 'GraphQL Error', errorMsg);
+                console.error('GraphQL Errors:', json.errors);
                 return null;
             }
+
             return json.data;
         } catch (e) {
-            alert("Network Error");
-            console.error(e);
+            showToast('error', 'Network Error', e.message || 'Unable to connect to server');
+            console.error('Request failed:', e);
             return null;
         }
     }
 
-    function renderTable(id, rows, mapper) {
-        const tbody = document.querySelector(`#${id} tbody`);
-        tbody.innerHTML = rows.map(mapper).join('');
-    }
-
     function showJson(id, data) {
-        document.getElementById(id).innerText = JSON.stringify(data, null, 2);
+        const el = document.getElementById(id);
+        if (data === null || data === undefined) {
+            el.innerHTML = '<span style="color: #fc8181;">No data returned</span>';
+        } else {
+            el.textContent = JSON.stringify(data, null, 2);
+        }
     }
 
     function getVal(id) { return document.getElementById(id).value; }
     function getInt(id) { return parseInt(document.getElementById(id).value) || 0; }
 
-    // --- STUDENTS ---
-    async function loadStudents() {
-        const data = await gql(`query { students { studentName email phoneNumber smallGroupName parentName } }`);
-        if (data) renderTable('table-students', data.students, s => `
-            <tr><td>${s.studentName}</td><td>${s.email}</td><td>${s.phoneNumber}</td>
-            <td>${s.smallGroupName}</td><td>${s.parentName}</td></tr>`);
+    // Validation helper
+    function validateRequired(fields) {
+        let isValid = true;
+        fields.forEach(({id, name}) => {
+            const el = document.getElementById(id);
+            if (!el.value || el.value.trim() === '') {
+                el.classList.add('error');
+                showToast('error', 'Validation Error', `${name} is required`);
+                isValid = false;
+            } else {
+                el.classList.remove('error');
+            }
+        });
+        return isValid;
     }
 
+    // Advanced Query Examples
+    const queryExamples = {
+        students: {
+            query: `query {
+  students {
+    studentName
+    email
+    phoneNumber
+    smallGroupName
+    parentName
+  }
+}`,
+            variables: {}
+        },
+        student: {
+            query: `query($id: Int!) {
+  student(studentId: $id) {
+    studentName
+    email
+    phoneNumber
+    smallGroupName
+    parentName
+    note
+  }
+}`,
+            variables: { id: 1 }
+        },
+        parent: {
+            query: `query($id: Int!) {
+  parent(parentId: $id) {
+    parentName
+    email
+    phoneNumber
+    note
+    students
+  }
+}`,
+            variables: { id: 1 }
+        },
+        events: {
+            query: `query {
+  events {
+    description
+    StartTime
+    EndTime
+    VenueAdress
+  }
+}`,
+            variables: {}
+        },
+        createEvent: {
+            query: `mutation($input: EventCreateInput!) {
+  createMongoEvent(input: $input)
+}`,
+            variables: {
+                input: {
+                    venueId: 1,
+                    startTime: "2024-12-20T10:00:00",
+                    endTime: "2024-12-20T12:00:00",
+                    description: "Youth Service",
+                    customFields: { theme: "Christmas" }
+                }
+            }
+        }
+    };
+
+    function loadQueryExample(type) {
+        const example = queryExamples[type];
+        if (example) {
+            document.getElementById('adv-query').value = example.query;
+            document.getElementById('adv-variables').value = JSON.stringify(example.variables, null, 2);
+            showToast('info', 'Example Loaded', `${type} query loaded into editor`);
+        }
+    }
+
+    async function executeAdvancedQuery() {
+        const queryText = getVal('adv-query');
+        const variablesText = getVal('adv-variables');
+
+        if (!queryText.trim()) {
+            showToast('error', 'Validation Error', 'Query cannot be empty');
+            return;
+        }
+
+        let variables = {};
+        try {
+            variables = JSON.parse(variablesText || '{}');
+        } catch (e) {
+            showToast('error', 'Invalid JSON', 'Variables must be valid JSON');
+            return;
+        }
+
+        setLoading('adv-execute-btn', true);
+        const data = await gql(queryText, variables);
+        setLoading('adv-execute-btn', false);
+
+        if (data) {
+            showJson('adv-result', data);
+            showToast('success', 'Query Executed', 'Results displayed below');
+        } else {
+            document.getElementById('adv-result').innerHTML = '<span style="color: #fc8181;">Query failed - check console for details</span>';
+        }
+    }
+
+    // STUDENTS
     async function findStudent() {
-    const id = getInt('std-find-id');
-    const data = await gql(`query($id: Int!) { student(studentId: $id) { studentName email note parentName smallGroupLeaderName phoneNumber smallGroupName } }`, {id});
+        const id = getInt('std-find-id');
+        if (!id) {
+            showToast('error', 'Validation Error', 'Please enter a student ID');
+            return;
+        }
 
-    if (data && data.student) {
-        const s = data.student;
-        document.getElementById('std-result').innerHTML = `
-            <div style="background: white; padding: 1rem; border-radius: 8px; color: #2d3748;">
-                <h4 style="margin-top: 0; color: var(--primary); border-bottom: 2px solid var(--border); padding-bottom: 0.5rem;">
-                    👤 ${s.studentName}
-                </h4>
-                <div style="display: grid; gap: 0.5rem; font-size: 0.9rem;">
-                    <p><strong>Email:</strong> ${s.email || 'N/A'}</p>
-                    <p><strong>Phone:</strong> ${s.phoneNumber || 'N/A'}</p>
-                    <p><strong>Parent:</strong> ${s.parentName || 'N/A'}</p>
-                    <p><strong>Small Group:</strong> ${s.smallGroupName || 'N/A'}</p>
-                    <p><strong>Leader:</strong> ${s.smallGroupLeaderName || 'N/A'}</p>
-                    ${s.note ? `<p><strong>Note:</strong> ${s.note}</p>` : ''}
+        setLoading('std-find-btn', true);
+        const data = await gql(`query($id: Int!) { student(studentId: $id) { studentName email note parentName smallGroupLeaderName phoneNumber smallGroupName } }`, {id});
+        setLoading('std-find-btn', false);
+
+        if (data && data.student) {
+            const s = data.student;
+            document.getElementById('std-result').innerHTML = `
+                <div style="background: white; padding: 1rem; border-radius: 8px; color: #2d3748;">
+                    <h4 style="margin-top: 0; color: var(--primary); border-bottom: 2px solid var(--border); padding-bottom: 0.5rem;">
+                        👤 ${s.studentName}
+                    </h4>
+                    <div style="display: grid; gap: 0.5rem; font-size: 0.9rem;">
+                        <p><strong>Email:</strong> ${s.email || 'N/A'}</p>
+                        <p><strong>Phone:</strong> ${s.phoneNumber || 'N/A'}</p>
+                        <p><strong>Parent:</strong> ${s.parentName || 'N/A'}</p>
+                        <p><strong>Small Group:</strong> ${s.smallGroupName || 'N/A'}</p>
+                        <p><strong>Leader:</strong> ${s.smallGroupLeaderName || 'N/A'}</p>
+                        ${s.note ? `<p><strong>Note:</strong> ${s.note}</p>` : ''}
+                    </div>
                 </div>
-            </div>
-        `;
-    } else {
-        document.getElementById('std-result').innerHTML = `
-            <div style="color: #e53e3e; padding: 1rem;">Student not found</div>
-        `;
+            `;
+            showToast('success', 'Student Found', `Retrieved details for ${s.studentName}`);
+        } else {
+            document.getElementById('std-result').innerHTML = '<div style="color: #e53e3e; padding: 1rem;">Student not found</div>';
+        }
     }
-}
 
     async function updateStudent() {
-        const input = { email: getVal('std-upd-email') || null, phoneNumber: getVal('std-upd-phone') || null, note: getVal('std-upd-note') || null };
-        const data = await gql(`mutation($id: Int!, $inp: StudentUpdateInput!) { updateStudent(studentId: $id, input: $inp) }`, { id: getInt('std-upd-id'), inp: input });
-        if(data) alert(data.updateStudent);
+        const id = getInt('std-upd-id');
+        if (!id) {
+            showToast('error', 'Validation Error', 'Please enter a student ID');
+            return;
+        }
+
+        const input = {
+            email: getVal('std-upd-email') || null,
+            phoneNumber: getVal('std-upd-phone') || null,
+            note: getVal('std-upd-note') || null
+        };
+
+        setLoading('std-upd-btn', true);
+        const data = await gql(`mutation($id: Int!, $inp: StudentUpdateInput!) { updateStudent(studentId: $id, input: $inp) }`, { id, inp: input });
+        setLoading('std-upd-btn', false);
+
+        if(data) {
+            showToast('success', 'Student Updated', data.updateStudent);
+            clearForm('std-upd');
+        }
     }
 
     async function deleteStudent() {
-        if(!confirm("Are you sure?")) return;
-        const data = await gql(`mutation($id: Int!) { deleteStudent(studentId: $id) }`, { id: getInt('std-upd-id') });
-        if(data) alert(data.deleteStudent);
+        const id = getInt('std-upd-id');
+        if (!id) {
+            showToast('error', 'Validation Error', 'Please enter a student ID');
+            return;
+        }
+
+        if(!confirm(`Are you sure you want to delete student ID ${id}? This action cannot be undone.`)) return;
+
+        setLoading('std-del-btn', true);
+        const data = await gql(`mutation($id: Int!) { deleteStudent(studentId: $id) }`, { id });
+        setLoading('std-del-btn', false);
+
+        if(data) {
+            showToast('success', 'Student Deleted', data.deleteStudent);
+            clearForm('std-upd');
+        }
     }
 
-    // --- PARENTS ---
-    async function loadParents() {
-        const data = await gql(`query { parents { parentId parentName email phoneNumber students } }`);
-        if (data) renderTable('table-parents', data.parents, p => `
-            <tr><td>${p.parentId}</td><td>${p.parentName}</td><td>${p.email}</td><td>${p.phoneNumber}</td>
-            <td>${p.students.join(', ')}</td></tr>`);
+    // PARENTS
+    async function findParent() {
+        const id = getInt('par-find-id');
+        if (!id) {
+            showToast('error', 'Validation Error', 'Please enter a parent ID');
+            return;
+        }
+
+        setLoading('par-find-btn', true);
+        const data = await gql(`query($id: Int!) { parent(parentId: $id) { parentName email phoneNumber note students } }`, {id});
+        setLoading('par-find-btn', false);
+
+        if (data && data.parent) {
+            const p = data.parent;
+            document.getElementById('par-result').innerHTML = `
+                <div style="background: white; padding: 1rem; border-radius: 8px; color: #2d3748;">
+                    <h4 style="margin-top: 0; color: var(--primary); border-bottom: 2px solid var(--border); padding-bottom: 0.5rem;">
+                        👪 ${p.parentName}
+                    </h4>
+                    <div style="display: grid; gap: 0.5rem; font-size: 0.9rem;">
+                        <p><strong>Email:</strong> ${p.email || 'N/A'}</p>
+                        <p><strong>Phone:</strong> ${p.phoneNumber || 'N/A'}</p>
+                        ${p.note ? `<p><strong>Note:</strong> ${p.note}</p>` : ''}
+                        <p><strong>Students:</strong> ${p.students && p.students.length > 0 ? p.students.join(', ') : 'No students'}</p>
+                    </div>
+                </div>
+            `;
+            showToast('success', 'Parent Found', `Retrieved details for ${p.parentName}`);
+        } else {
+            document.getElementById('par-result').innerHTML = '<div style="color: #e53e3e; padding: 1rem;">Parent not found</div>';
+        }
     }
 
     async function updateParent() {
-        const input = { email: getVal('par-email') || null, phoneNumber: getVal('par-phone') || null, note: getVal('par-note') || null };
-        const data = await gql(`mutation($id: Int!, $inp: ParentUpdateInput!) { updateParent(parentId: $id, input: $inp) }`, { id: getInt('par-id'), inp: input });
-        if(data) alert(data.updateParent);
+        const id = getInt('par-id');
+        if (!id) {
+            showToast('error', 'Validation Error', 'Please enter a parent ID');
+            return;
+        }
+
+        const input = {
+            email: getVal('par-email') || null,
+            phoneNumber: getVal('par-phone') || null,
+            note: getVal('par-note') || null
+        };
+
+        setLoading('par-upd-btn', true);
+        const data = await gql(`mutation($id: Int!, $inp: ParentUpdateInput!) { updateParent(parentId: $id, input: $inp) }`, { id, inp: input });
+        setLoading('par-upd-btn', false);
+
+        if(data) {
+            showToast('success', 'Parent Updated', data.updateParent);
+            clearForm('par-');
+        }
     }
 
     async function deleteParent() {
-        if(!confirm("Are you sure?")) return;
-        const data = await gql(`mutation($id: Int!) { deleteParent(parentId: $id) }`, { id: getInt('par-id') });
-        if(data) alert(data.deleteParent);
+        const id = getInt('par-id');
+        if (!id) {
+            showToast('error', 'Validation Error', 'Please enter a parent ID');
+            return;
+        }
+
+        if(!confirm(`Are you sure you want to delete parent ID ${id}? This action cannot be undone.`)) return;
+
+        setLoading('par-del-btn', true);
+        const data = await gql(`mutation($id: Int!) { deleteParent(parentId: $id) }`, { id });
+        setLoading('par-del-btn', false);
+
+        if(data) {
+            showToast('success', 'Parent Deleted', data.deleteParent);
+            clearForm('par-');
+        }
     }
 
-    // --- LEADERS ---
-    async function loadLeaders() {
-        const data = await gql(`query { leaders { leaderId leaderName smallGroupName email salary shifts { startTime endTime } } }`);
-        if (data) renderTable('table-leaders', data.leaders, l => `
-            <tr><td>${l.leaderId}</td><td>${l.leaderName}</td><td>${l.smallGroupName || '-'}</td>
-            <td>${l.email}</td><td>${l.salary}</td><td>${l.shifts.length} shifts</td></tr>`);
-    }
-
+    // LEADERS
     async function findLeader() {
-        const data = await gql(`query($id: Int!) { leader(leaderId: $id) { leaderName datejoined salary note } }`, {id: getInt('ldr-find-id')});
-        if(data) showJson('ldr-result', data.leader);
+        const id = getInt('ldr-find-id');
+        if (!id) {
+            showToast('error', 'Validation Error', 'Please enter a leader ID');
+            return;
+        }
+
+        setLoading('ldr-find-btn', true);
+        const data = await gql(`query($id: Int!) { leader(leaderId: $id) { leaderName datejoined salary note } }`, {id});
+        setLoading('ldr-find-btn', false);
+
+        if(data) {
+            showJson('ldr-result', data.leader);
+            showToast('success', 'Leader Found', 'Details displayed below');
+        }
     }
 
     async function findLeaderGroup() {
-        const data = await gql(`query($id: Int!) { leaderSmallGroup(leaderId: $id) { smallGroupName meetingTime studentName } }`, {id: getInt('ldr-find-id')});
-        if(data) showJson('ldr-result', data.leaderSmallGroup);
+        const id = getInt('ldr-find-id');
+        if (!id) {
+            showToast('error', 'Validation Error', 'Please enter a leader ID');
+            return;
+        }
+
+        setLoading('ldr-group-btn', true);
+        const data = await gql(`query($id: Int!) { leaderSmallGroup(leaderId: $id) { smallGroupName meetingTime studentName } }`, {id});
+        setLoading('ldr-group-btn', false);
+
+        if(data) {
+            showJson('ldr-result', data.leaderSmallGroup);
+            showToast('success', 'Group Info Retrieved', 'Details displayed below');
+        }
     }
 
     async function updateLeader() {
-        const input = { salary: parseFloat(getVal('ldr-salary')) || null, datejoined: getVal('ldr-date') || null };
-        const data = await gql(`mutation($id: Int!, $inp: LeaderUpdateInput!) { updateLeader(leaderId: $id, input: $inp) }`, { id: getInt('ldr-upd-id'), inp: input });
-        if(data) alert(data.updateLeader);
+        const id = getInt('ldr-upd-id');
+        if (!id) {
+            showToast('error', 'Validation Error', 'Please enter a leader ID');
+            return;
+        }
+
+        const input = {
+            salary: parseFloat(getVal('ldr-salary')) || null,
+            datejoined: getVal('ldr-date') || null
+        };
+
+        setLoading('ldr-upd-btn', true);
+        const data = await gql(`mutation($id: Int!, $inp: LeaderUpdateInput!) { updateLeader(leaderId: $id, input: $inp) }`, { id, inp: input });
+        setLoading('ldr-upd-btn', false);
+
+        if(data) {
+            showToast('success', 'Leader Updated', data.updateLeader);
+            clearForm('ldr-upd');
+        }
     }
 
     async function deleteLeader() {
-        if(!confirm("Are you sure?")) return;
-        const data = await gql(`mutation($id: Int!) { deleteLeader(leaderId: $id) }`, { id: getInt('ldr-upd-id') });
-        if(data) alert(data.deleteLeader);
+        const id = getInt('ldr-upd-id');
+        if (!id) {
+            showToast('error', 'Validation Error', 'Please enter a leader ID');
+            return;
+        }
+
+        if(!confirm(`Are you sure you want to delete leader ID ${id}? This action cannot be undone.`)) return;
+
+        setLoading('ldr-del-btn', true);
+        const data = await gql(`mutation($id: Int!) { deleteLeader(leaderId: $id) }`, { id });
+        setLoading('ldr-del-btn', false);
+
+        if(data) {
+            showToast('success', 'Leader Deleted', data.deleteLeader);
+            clearForm('ldr-upd');
+        }
     }
 
-    // --- EVENTS & REDIS ---
-    async function loadEvents() {
-        const data = await gql(`query { events { description StartTime EndTime } }`);
-        if(data) renderTable('table-events', data.events, e => `<tr><td>${e.description}</td><td>${e.StartTime}</td><td>${e.EndTime}</td></tr>`);
-    }
-
+    // EVENTS & REDIS
     async function createEvent() {
+        if (!validateRequired([
+            {id: 'evt-desc', name: 'Description'},
+            {id: 'evt-start', name: 'Start Time'},
+            {id: 'evt-end', name: 'End Time'}
+        ])) return;
+
+        let customFields = {};
+        try {
+            customFields = JSON.parse(getVal('evt-custom') || "{}");
+        } catch(e) {
+            showToast('error', 'Invalid JSON', 'Custom fields must be valid JSON');
+            return;
+        }
+
         const input = {
             venueId: getInt('evt-venue'),
             startTime: getVal('evt-start'),
             endTime: getVal('evt-end'),
             description: getVal('evt-desc'),
-            customFields: JSON.parse(getVal('evt-custom') || "{}")
+            customFields
         };
+
+        setLoading('evt-create-btn', true);
         const data = await gql(`mutation($inp: EventCreateInput!) { createMongoEvent(input: $inp) }`, { inp: input });
-        if(data) alert(data.createMongoEvent);
+        setLoading('evt-create-btn', false);
+
+        if(data) {
+            showToast('success', 'Event Created', data.createMongoEvent);
+            clearForm('evt-');
+        }
     }
 
     async function updateEvent() {
-        const input = { description: getVal('evt-desc') || null, startTime: getVal('evt-start') || null, endTime: getVal('evt-end') || null };
-        const data = await gql(`mutation($id: Int!, $inp: EventUpdateInput!) { updateEvent(eventId: $id, input: $inp) }`, { id: getInt('evt-id'), inp: input });
-        if(data) alert(data.updateEvent);
+        const id = getInt('evt-id');
+        if (!id) {
+            showToast('error', 'Validation Error', 'Please enter an event ID');
+            return;
+        }
+
+        const input = {
+            description: getVal('evt-desc') || null,
+            startTime: getVal('evt-start') || null,
+            endTime: getVal('evt-end') || null
+        };
+
+        setLoading('evt-upd-btn', true);
+        const data = await gql(`mutation($id: Int!, $inp: EventUpdateInput!) { updateEvent(eventId: $id, input: $inp) }`, { id, inp: input });
+        setLoading('evt-upd-btn', false);
+
+        if(data) {
+            showToast('success', 'Event Updated', data.updateEvent);
+        }
     }
 
     async function deleteEvent() {
-        if(!confirm("Are you sure?")) return;
-        const data = await gql(`mutation($id: Int!) { deleteEvent(eventId: $id) }`, { id: getInt('evt-id') });
-        if(data) alert(data.deleteEvent);
+        const id = getInt('evt-id');
+        if (!id) {
+            showToast('error', 'Validation Error', 'Please enter an event ID');
+            return;
+        }
+
+        if(!confirm(`Are you sure you want to delete event ID ${id}? This action cannot be undone.`)) return;
+
+        setLoading('evt-del-btn', true);
+        const data = await gql(`mutation($id: Int!) { deleteEvent(eventId: $id) }`, { id });
+        setLoading('evt-del-btn', false);
+
+        if(data) {
+            showToast('success', 'Event Deleted', data.deleteEvent);
+            document.getElementById('evt-id').value = '';
+        }
     }
 
     async function getEventDetails() {
-        const data = await gql(`query($id: Int!) { event(eventId: $id) { description StartTime VenueAdress } }`, {id: getInt('evt-q-id')});
-        if(data) showJson('evt-result', data.event);
+        const id = getInt('evt-q-id');
+        if (!id) {
+            showToast('error', 'Validation Error', 'Please enter an event ID');
+            return;
+        }
+
+        setLoading('evt-detail-btn', true);
+        const data = await gql(`query($id: Int!) { event(eventId: $id) { description StartTime VenueAdress } }`, {id});
+        setLoading('evt-detail-btn', false);
+
+        if(data) {
+            showJson('evt-result', data.event);
+            showToast('success', 'Event Details', 'Retrieved successfully');
+        }
     }
 
     async function getEventAttendance() {
-        const data = await gql(`query($id: Int!) { eventAttendance(eventId: $id) { studentId firstName lastName timestamp } }`, {id: getInt('evt-q-id')});
-        if(data) showJson('evt-result', data.eventAttendance);
+        const id = getInt('evt-q-id');
+        if (!id) {
+            showToast('error', 'Validation Error', 'Please enter an event ID');
+            return;
+        }
+
+        setLoading('evt-attend-btn', true);
+        const data = await gql(`query($id: Int!) { eventAttendance(eventId: $id) { studentId firstName lastName timestamp } }`, {id});
+        setLoading('evt-attend-btn', false);
+
+        if(data) {
+            showJson('evt-result', data.eventAttendance);
+            showToast('success', 'Attendance Retrieved', `${data.eventAttendance?.length || 0} records found`);
+        }
     }
 
-    // Redis
+    // Redis operations
     async function redisLoad() {
-        const data = await gql(`mutation($id: Int!) { loadRedisEventRegistration(eventId: $id) }`, { id: getInt('evt-q-id') });
-        if(data) alert(data.loadRedisEventRegistration);
+        const id = getInt('evt-q-id');
+        if (!id) {
+            showToast('error', 'Validation Error', 'Please enter an event ID');
+            return;
+        }
+
+        setLoading('redis-load-btn', true);
+        const data = await gql(`mutation($id: Int!) { loadRedisEventRegistration(eventId: $id) }`, { id });
+        setLoading('redis-load-btn', false);
+
+        if(data) showToast('success', 'Redis Cache', data.loadRedisEventRegistration);
     }
+
     async function redisUpdate() {
-        const data = await gql(`mutation($id: Int!) { updateRedisEventRegistration(eventId: $id) }`, { id: getInt('evt-q-id') });
-        if(data) alert(data.updateRedisEventRegistration);
+        const id = getInt('evt-q-id');
+        if (!id) {
+            showToast('error', 'Validation Error', 'Please enter an event ID');
+            return;
+        }
+
+        setLoading('redis-upd-btn', true);
+        const data = await gql(`mutation($id: Int!) { updateRedisEventRegistration(eventId: $id) }`, { id });
+        setLoading('redis-upd-btn', false);
+
+        if(data) showToast('success', 'Redis Cache', data.updateRedisEventRegistration);
     }
+
     async function redisDelete() {
-        const data = await gql(`mutation($id: Int!) { deleteRedisEventRegistration(eventId: $id) }`, { id: getInt('evt-q-id') });
-        if(data) alert(data.deleteRedisEventRegistration);
+        const id = getInt('evt-q-id');
+        if (!id) {
+            showToast('error', 'Validation Error', 'Please enter an event ID');
+            return;
+        }
+
+        if(!confirm('Clear Redis cache for this event?')) return;
+
+        setLoading('redis-del-btn', true);
+        const data = await gql(`mutation($id: Int!) { deleteRedisEventRegistration(eventId: $id) }`, { id });
+        setLoading('redis-del-btn', false);
+
+        if(data) showToast('success', 'Redis Cache', data.deleteRedisEventRegistration);
     }
+
     async function redisFetch() {
-        const data = await gql(`query($id: Int!) { redisEventRegistration(eventId: $id) { count success registrations { studentId firstName } } }`, { id: getInt('evt-q-id') });
-        if(data) showJson('evt-result', data.redisEventRegistration);
+        const id = getInt('evt-q-id');
+        if (!id) {
+            showToast('error', 'Validation Error', 'Please enter an event ID');
+            return;
+        }
+
+        setLoading('redis-fetch-btn', true);
+        const data = await gql(`query($id: Int!) { redisEventRegistration(eventId: $id) { count success registrations { studentId firstName } } }`, { id });
+        setLoading('redis-fetch-btn', false);
+
+        if(data) {
+            showJson('evt-result', data.redisEventRegistration);
+            showToast('success', 'Redis Data', 'Retrieved from cache');
+        }
     }
 
-    // --- CAMPS ---
-    async function loadCamps() {
-        const data = await gql(`query { camps { CampNumber Description VenueAddress StartTime EndTime } }`);
-        if(data) renderTable('table-camps', data.camps, c => `<tr><td>${c.CampNumber}</td><td>${c.Description}</td><td>${c.VenueAddress}</td><td>${c.StartTime}</td><td>${c.EndTime}</td></tr>`);
-    }
-
+    // CAMPS
     async function createCamp() {
+        if (!validateRequired([
+            {id: 'cmp-desc', name: 'Description'},
+            {id: 'cmp-start', name: 'Start Time'},
+            {id: 'cmp-end', name: 'End Time'},
+            {id: 'cmp-venue', name: 'Venue ID'}
+        ])) return;
+
         const input = {
-            venueId: getInt('cmp-venue'), startTime: getVal('cmp-start'), endTime: getVal('cmp-end'), description: getVal('cmp-desc'), customFields: {}
+            venueId: getInt('cmp-venue'),
+            startTime: getVal('cmp-start'),
+            endTime: getVal('cmp-end'),
+            description: getVal('cmp-desc'),
+            customFields: {}
         };
+
+        setLoading('cmp-create-btn', true);
         const data = await gql(`mutation($inp: CampCreateInput!) { createMongoCamp(input: $inp) }`, { inp: input });
-        if(data) alert(data.createMongoCamp);
+        setLoading('cmp-create-btn', false);
+
+        if(data) {
+            showToast('success', 'Camp Created', data.createMongoCamp);
+            clearForm('cmp-');
+        }
     }
 
     async function updateCamp() {
-        const input = { description: getVal('cmp-desc') || null, startTime: getVal('cmp-start') || null, endTime: getVal('cmp-end') || null };
-        const data = await gql(`mutation($id: Int!, $inp: CampUpdateInput!) { updateCamp(campId: $id, input: $inp) }`, { id: getInt('cmp-id'), inp: input });
-        if(data) alert(data.updateCamp);
+        const id = getInt('cmp-id');
+        if (!id) {
+            showToast('error', 'Validation Error', 'Please enter a camp ID');
+            return;
+        }
+
+        const input = {
+            description: getVal('cmp-desc') || null,
+            startTime: getVal('cmp-start') || null,
+            endTime: getVal('cmp-end') || null
+        };
+
+        setLoading('cmp-upd-btn', true);
+        const data = await gql(`mutation($id: Int!, $inp: CampUpdateInput!) { updateCamp(campId: $id, input: $inp) }`, { id, inp: input });
+        setLoading('cmp-upd-btn', false);
+
+        if(data) {
+            showToast('success', 'Camp Updated', data.updateCamp);
+        }
     }
 
     async function deleteCamp() {
-        const data = await gql(`mutation($id: Int!) { deleteCamp(campId: $id) }`, { id: getInt('cmp-id') });
-        if(data) alert(data.deleteCamp);
+        const id = getInt('cmp-id');
+        if (!id) {
+            showToast('error', 'Validation Error', 'Please enter a camp ID');
+            return;
+        }
+
+        if(!confirm(`Are you sure you want to delete camp ID ${id}? This action cannot be undone.`)) return;
+
+        setLoading('cmp-del-btn', true);
+        const data = await gql(`mutation($id: Int!) { deleteCamp(campId: $id) }`, { id });
+        setLoading('cmp-del-btn', false);
+
+        if(data) {
+            showToast('success', 'Camp Deleted', data.deleteCamp);
+            document.getElementById('cmp-id').value = '';
+        }
     }
 
     async function getCampDetails() {
-        const data = await gql(`query($id: Int!) { camp(campId: $id) { description StartTime EndTime } }`, {id: getInt('cmp-q-id')});
-        if(data) showJson('cmp-result', data.camp);
+        const id = getInt('cmp-q-id');
+        if (!id) {
+            showToast('error', 'Validation Error', 'Please enter a camp ID');
+            return;
+        }
+
+        setLoading('cmp-detail-btn', true);
+        const data = await gql(`query($id: Int!) { camp(campId: $id) { description StartTime EndTime } }`, {id});
+        setLoading('cmp-detail-btn', false);
+
+        if(data) {
+            showJson('cmp-result', data.camp);
+            showToast('success', 'Camp Details', 'Retrieved successfully');
+        }
     }
+
     async function getCampRegs() {
-        const data = await gql(`query($id: Int!) { campRegistration(campId: $id) { AmountPaid description VenueAdress } }`, {id: getInt('cmp-q-id')});
-        if(data) showJson('cmp-result', data.campRegistration);
+        const id = getInt('cmp-q-id');
+        if (!id) {
+            showToast('error', 'Validation Error', 'Please enter a camp ID');
+            return;
+        }
+
+        setLoading('cmp-regs-btn', true);
+        const data = await gql(`query($id: Int!) { campRegistration(campId: $id) { AmountPaid description VenueAdress } }`, {id});
+        setLoading('cmp-regs-btn', false);
+
+        if(data) {
+            showJson('cmp-result', data.campRegistration);
+            showToast('success', 'Registrations', 'Retrieved successfully');
+        }
     }
+
     async function getStudentCampRegs() {
-        const data = await gql(`query($id: Int!) { campRegistrationStudent(studentId: $id) { campId studentName amountPaid description } }`, {id: getInt('cmp-q-std-id')});
-        if(data) showJson('cmp-result', data.campRegistrationStudent);
+        const id = getInt('cmp-q-std-id');
+        if (!id) {
+            showToast('error', 'Validation Error', 'Please enter a student ID');
+            return;
+        }
+
+        setLoading('cmp-std-btn', true);
+        const data = await gql(`query($id: Int!) { campRegistrationStudent(studentId: $id) { campId studentName amountPaid description } }`, {id});
+        setLoading('cmp-std-btn', false);
+
+        if(data) {
+            showJson('cmp-result', data.campRegistrationStudent);
+            showToast('success', 'Student History', `${data.campRegistrationStudent?.length || 0} camps found`);
+        }
     }
 
-    // --- VENUES ---
-    async function loadVenues() {
-        const data = await gql(`query { venues { VenueAdress description } }`);
-        if(data) renderTable('table-venues', data.venues, v => `<tr><td>${v.VenueAdress}</td><td>${v.description}</td></tr>`);
-    }
-
+    // VENUES
     async function getVenueDetail() {
-        const data = await gql(`query($id: Int!) { venue(venueId: $id) { VenueAdress description } }`, {id: getInt('ven-id')});
-        if(data) showJson('ven-result', data.venue);
+        const id = getInt('ven-id');
+        if (!id) {
+            showToast('error', 'Validation Error', 'Please enter a venue ID');
+            return;
+        }
+
+        setLoading('ven-get-btn', true);
+        const data = await gql(`query($id: Int!) { venue(venueId: $id) { VenueAdress description } }`, {id});
+        setLoading('ven-get-btn', false);
+
+        if(data) {
+            showJson('ven-result', data.venue);
+            showToast('success', 'Venue Details', 'Retrieved successfully');
+        }
     }
 
     async function updateVenue() {
-        const input = { address: getVal('ven-addr') || null, description: getVal('ven-desc') || null };
-        const data = await gql(`mutation($id: Int!, $inp: VenueUpdateInput!) { updateVenue(venueId: $id, input: $inp) }`, { id: getInt('ven-id'), inp: input });
-        if(data) alert(data.updateVenue);
+        const id = getInt('ven-id');
+        if (!id) {
+            showToast('error', 'Validation Error', 'Please enter a venue ID');
+            return;
+        }
+
+        const input = {
+            address: getVal('ven-addr') || null,
+            description: getVal('ven-desc') || null
+        };
+
+        setLoading('ven-upd-btn', true);
+        const data = await gql(`mutation($id: Int!, $inp: VenueUpdateInput!) { updateVenue(venueId: $id, input: $inp) }`, { id, inp: input });
+        setLoading('ven-upd-btn', false);
+
+        if(data) {
+            showToast('success', 'Venue Updated', data.updateVenue);
+            document.getElementById('ven-addr').value = '';
+            document.getElementById('ven-desc').value = '';
+        }
     }
 
     async function deleteVenue() {
-        const data = await gql(`mutation($id: Int!) { deleteVenue(venueId: $id) }`, { id: getInt('ven-id') });
-        if(data) alert(data.deleteVenue);
+        const id = getInt('ven-id');
+        if (!id) {
+            showToast('error', 'Validation Error', 'Please enter a venue ID');
+            return;
+        }
+
+        if(!confirm(`Are you sure you want to delete venue ID ${id}? This action cannot be undone.`)) return;
+
+        setLoading('ven-del-btn', true);
+        const data = await gql(`mutation($id: Int!) { deleteVenue(venueId: $id) }`, { id });
+        setLoading('ven-del-btn', false);
+
+        if(data) {
+            showToast('success', 'Venue Deleted', data.deleteVenue);
+            document.getElementById('ven-id').value = '';
+        }
     }
 
-    // Init
-    loadStudents();
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && e.target.tagName === 'INPUT' && e.target.type !== 'textarea') {
+            e.preventDefault();
+            const section = e.target.closest('.view-section');
+            if (section) {
+                const btn = section.querySelector('.btn-primary');
+                if (btn && !btn.disabled) btn.click();
+            }
+        }
+    });
 </script>
 </body>
 </html>
