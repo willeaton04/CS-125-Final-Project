@@ -1,7 +1,7 @@
 # FAKE DATA
 
-ALTER TABLE Event AUTO_INCREMENT = 1; # Prevents event from entering weird autoincrement
 USE YouthGroup;
+ALTER TABLE Event AUTO_INCREMENT = 1; # Prevents event from entering weird autoincrement
 
 -- Parents (10)
 INSERT INTO Parent (id, first_name, last_name, email, phone_number, note) VALUES
@@ -53,7 +53,7 @@ INSERT INTO Event (venue_id, start_time, end_time, description) VALUES
 INSERT INTO Camp (id) VALUES
 (6),
 (7),
-(9);
+(8);
 
 -- Small groups (5) — reference existing leaders
 INSERT INTO SmallGroup (id, name, leader_id, meeting_time) VALUES

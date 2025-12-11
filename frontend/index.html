@@ -357,7 +357,7 @@
                     <input type="number" id="std-find-id" placeholder="Student ID">
                 </div>
                 <button class="btn btn-primary" onclick="findStudent()" id="std-find-btn">Find</button>
-                <div id="std-result" class="json-box" style="margin-top:10px;"></div>
+                <div id="std-result" class="json-box" style="margin-top:10px; height:500px;"></div>
             </div>
 
             <div class="card">
@@ -394,7 +394,7 @@
                     <input type="number" id="par-find-id" placeholder="Parent ID">
                 </div>
                 <button class="btn btn-primary" onclick="findParent()" id="par-find-btn">Find</button>
-                <div id="par-result" class="json-box" style="margin-top:10px;"></div>
+                <div id="par-result" class="json-box" style="margin-top:10px; height:500px;"></div>
             </div>
 
             <div class="card">
@@ -434,7 +434,7 @@
                     <button class="btn btn-primary" onclick="findLeader()" id="ldr-find-btn">Get Details</button>
                     <button class="btn btn-secondary" onclick="findLeaderGroup()" id="ldr-group-btn">Get Group Info</button>
                 </div>
-                <div id="ldr-result" class="json-box" style="margin-top:10px;"></div>
+                <div id="ldr-result" class="json-box" style="margin-top:10px; height:500px;"></div>
             </div>
 
             <div class="card">
@@ -488,7 +488,7 @@
                 <h3>Update/Delete</h3>
                 <div class="form-group">
                     <label>Event ID</label>
-                    <input type="number" id="evt-id" placeholder="Event ID">
+                    <input type="number" id="evt-id" placeholder="xEvent ID">
                 </div>
                 <div style="display:flex; gap:10px;">
                     <button class="btn btn-primary" onclick="updateEvent()" id="evt-upd-btn">Update (Uses fields above)</button>
@@ -506,7 +506,7 @@
                     <button class="btn btn-secondary" onclick="getEventDetails()" id="evt-detail-btn">Detail</button>
                     <button class="btn btn-secondary" onclick="getEventAttendance()" id="evt-attend-btn">MySQL Attendance</button>
                 </div>
-                <div id="evt-result" class="json-box" style="margin-top:10px; height:100px;"></div>
+                <div id="evt-result" class="json-box" style="margin-top:10px; height:500px;"></div>
 
                 <h3 style="margin-top:1.5rem;">Redis Cache Operations</h3>
                 <p style="font-size:0.8rem; color:#666;">Manage attendance cache for high performance.</p>
@@ -566,7 +566,7 @@
                     <button class="btn btn-secondary" onclick="getCampRegs()" id="cmp-regs-btn">Registrations (By Camp ID)</button>
                     <button class="btn btn-secondary" onclick="getStudentCampRegs()" id="cmp-std-btn">Student History (By Student ID)</button>
                 </div>
-                <div id="cmp-result" class="json-box" style="margin-top:10px;"></div>
+                <div id="cmp-result" class="json-box" style="margin-top:10px; height:500px;"></div>
             </div>
         </div>
     </section>
@@ -597,7 +597,7 @@
                     <button class="btn btn-primary" onclick="updateVenue()" id="ven-upd-btn">Update</button>
                 </div>
             </div>
-            <div id="ven-result" class="json-box" style="margin-top:10px;"></div>
+            <div id="ven-result" class="json-box" style="margin-top:10px; height:500px;"></div>
         </div>
     </section>
 
@@ -864,9 +864,7 @@
             const s = data.student;
             document.getElementById('std-result').innerHTML = `
                 <div style="background: white; padding: 1rem; border-radius: 8px; color: #2d3748;">
-                    <h4 style="margin-top: 0; color: var(--primary); border-bottom: 2px solid var(--border); padding-bottom: 0.5rem;">
-                        👤 ${s.studentName}
-                    </h4>
+                    <h4 style=" margin-top: 0; color: var(--primary); border-bottom: 2px solid var(--border); padding-bottom: 0.5rem; text-align: center;">${s.studentName}</h4>
                     <div style="display: grid; gap: 0.5rem; font-size: 0.9rem;">
                         <p><strong>Email:</strong> ${s.email || 'N/A'}</p>
                         <p><strong>Phone:</strong> ${s.phoneNumber || 'N/A'}</p>
@@ -941,9 +939,7 @@
             const p = data.parent;
             document.getElementById('par-result').innerHTML = `
                 <div style="background: white; padding: 1rem; border-radius: 8px; color: #2d3748;">
-                    <h4 style="margin-top: 0; color: var(--primary); border-bottom: 2px solid var(--border); padding-bottom: 0.5rem;">
-                        👪 ${p.parentName}
-                    </h4>
+                    <h4 style="margin-top: 0; color: var(--primary); border-bottom: 2px solid var(--border); padding-bottom: 0.5rem;">${p.parentName}</h4>
                     <div style="display: grid; gap: 0.5rem; font-size: 0.9rem;">
                         <p><strong>Email:</strong> ${p.email || 'N/A'}</p>
                         <p><strong>Phone:</strong> ${p.phoneNumber || 'N/A'}</p>
