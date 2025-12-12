@@ -1660,7 +1660,7 @@ async def event_student_attendance(eventId: int):
     if not results:
         raise HTTPException(
             status_code=404,
-            detail="That event doesn't exist in our db"
+            detail="That event doesn't exist in our ER Implementation + Fake Data"
         )
 
     return results
@@ -1722,7 +1722,7 @@ async def camp_registration_students(student_id: int):
     if not results:
         raise HTTPException(
             status_code=404,
-            detail="That event doesn't exist in our db"
+            detail="That event doesn't exist in our ER Implementation + Fake Data"
         )
 
     return results
