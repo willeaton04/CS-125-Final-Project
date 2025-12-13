@@ -6,16 +6,16 @@ Who’s using this?
 - Leaders: Administration (distinguish roles) 
 
 What do they want to do?
-- Take attendance 
-- Registration for several events 
-- Leaders are able to access their shifts 
+- View students or members of the Youth group, leaders of small groups and parents 
+- Create/Update registration for several events 
+- Leaders are able to access their shifts in a nicely crafted calendar
 - The database should display event information 
 
 What should they be able to do? 
-- Take attendance 
-- Registration: names, emails, phone numbers, parents 
+- Search / display information of students, leaders and parents 
+- Registration: names, emails, phone numbers 
 - Description of youth members
-- Keep track of students, leaders, and volunteers
+- Keep track of leaders, and volunteers
 
 Assumptions: - We only record one parent per each student
 
@@ -85,7 +85,7 @@ This directory contains all the fields necessary for the backend knowledge. It h
 logic that makes fetching, writing, reading, modifying and all other functionalities possible. Here are the files in the backend:
 
 - Main.py: Implements all the Mongo, Redis and Mysql's get, update and delete endpoints that makes fetching, updating and deleting information in the 
-database possible. In total, it has 52 endpoints.
+database possible. In total, it has 52 endpoints. Want to know which ones? Quickly rush to our main.py file 
 
 - Dockerfile: Implements the docker containers by setting the work directory, installing dependencies, and running the API server. 
 
@@ -108,4 +108,5 @@ The Front end folder holds an index.html that was vibe coded by Gemini, and of c
 
 # How do I run the front end?
 Go into index.html and click on the google chrome or firefox icon you would want to view our front end in. Make sure your docker is running in the backend so it would be eays to pull, fetch and basically have fun with our front end. 
+
 
