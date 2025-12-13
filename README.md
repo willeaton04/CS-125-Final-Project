@@ -107,6 +107,6 @@ This directory has the visual ER diagram implemented, and also contains the fake
 The Front end folder holds an index.html that was vibe coded by Gemini, and of course we had to make some changes to make the front end look prettier and very aesthetic. 
 
 # How do I run the front end?
-Go into index.html and click on the google chrome or firefox icon you would want to view our front end in. Make sure your docker is running in the backend so it would be eays to pull, fetch and basically have fun with our front end. 
+Go into index.html and click on the Google Chrome or firefox icon you would want to view our front end in. Make sure your docker is running in the backend so it would be eays to pull, fetch and basically have fun with our front end. 
 
 
