@@ -272,7 +272,6 @@
             .grid-2 { grid-template-columns: 1fr; }
         }
     </style>
-    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js'></script>
 </head>
 <body>
 
@@ -457,10 +456,6 @@
                     <button class="btn btn-danger" onclick="deleteLeader()" id="ldr-del-btn">Delete</button>
                 </div>
             </div>
-        </div>
-        <div class="card">
-            <h3>Leader Schedule</h3>
-            <div id="calendar"></div>
         </div>
     </section>
 
@@ -689,59 +684,6 @@
         document.querySelectorAll('nav button').forEach(el => el.classList.remove('active'));
         document.getElementById(id).classList.add('active');
         event.currentTarget.classList.add('active');
-        if (id === 'leaders') {
-            initLeaderCalendar();
-        }
-    }
-
-    let calendar; // Keep a reference to the calendar instance
-
-    async function initLeaderCalendar() {
-        const calendarEl = document.getElementById('calendar');
-        if (!calendarEl) return;
-
-        if (calendar) {
-            calendar.refetchEvents();
-            return;
-        }
-
-        calendar = new FullCalendar.Calendar(calendarEl, {
-            initialView: 'timeGridWeek',
-            headerToolbar: {
-                left: 'prev,next today',
-                center: 'title',
-                right: 'dayGridMonth,timeGridWeek,timeGridDay'
-            },
-            events: async function(fetchInfo, successCallback, failureCallback) {
-                const data = await gql(`
-                    query {
-                        leaders {
-                            leaderName
-                            shifts {
-                                startTime
-                                endTime
-                            }
-                        }
-                    }
-                `);
-
-                if (data && data.leaders) {
-                    const events = data.leaders.flatMap(leader =>
-                        leader.shifts.map(shift => ({
-                            title: leader.leaderName,
-                            start: shift.startTime.replace(' ', 'T'),
-                            end: shift.endTime.replace(' ', 'T')
-                        }))
-                    );
-                    successCallback(events);
-                } else {
-                    showToast('error', 'Calendar Error', 'Could not fetch leader schedules.');
-                    failureCallback(new Error('Could not fetch leader data'));
-                }
-            }
-        });
-        calendar.render();
-        showToast('info', 'Calendar', 'Leader schedule calendar loaded.');
     }
 
     // GraphQL request handler
